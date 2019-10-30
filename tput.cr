@@ -14,7 +14,7 @@
 module Crysterm
   DIR= "."
 
-  module Tput
+  class Tput
 
     # Terminfo booleans
     Bools = [
