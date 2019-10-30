@@ -17,5 +17,9 @@ describe "Tput" do
     ::Crysterm::Tput::Acsc["c"].should eq "\u000c"
     ::Crysterm::Tput::Utoa["\u2524"].should eq "+"
   end
+
+  it "has fallback termcap" do
+    ::Crysterm::Tput::Termcap.should be_a String
+  end
 end
 
