@@ -5,7 +5,7 @@ module Crysterm
   module Alias
 
     # These are the boolean capabilities
-    BOOLS = {
+    Bools = {
       #         Variable             Tinfo     TCap      Description
       #         Booleans             name      Code
       "auto_left_margin" =>          {"bw",    "bw"}, #  cub1 wraps from col‐ umn 0 to last column
@@ -48,7 +48,7 @@ module Crysterm
     };
 
     # These are the numeric capabilities
-    NUMBERS = {
+    Numbers = {
       #         Variable             Tinfo     TCap      Description
       #          Numeric             name      Code
       "columns" =>                   {"cols",  "co"}, #  number of columns in a line
@@ -94,7 +94,7 @@ module Crysterm
     };
 
     # These are the string capabilities
-    STRINGS = {
+    Strings = {
       #         Variable             Tinfo     TCap      Description
       #          String              name      Code
       "acs_chars" =>                 {"acsc",  "ac"}, #  graphics charset pairs, based on vt100
