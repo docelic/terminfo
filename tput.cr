@@ -613,6 +613,68 @@ module Crysterm
       ":sc=\\E7:rc=\\E8:cs=\\E[%i%d;%dr:vs=\\E[?7l:ve=\\E[?7h:" +
       ":mi:al=\\E[L:dc=\\E[P:dl=\\E[M:ei=\\E[4l:im=\\E[4h:"
 
+      @terminal : String
+      @debug : Bool
+      @padding : Int32?
+      @extended : Int32?
+      @printf : Int32?
+      @termcap : Int32?
+      @error : String?
+      @terminfo_prefix : String?
+      @terminfo_file : String?
+      @termcap_file : String?
+
+    def initialize(**options)
+      #@options = options
+      @terminal = ::Crysterm::Helpers.find_terminal(options)
+      @debug = options[:debug]? || false
+      @padding = options[:padding]?
+      @extended = options[:extended]?
+      @printf = options[:printf]?
+      @termcap = options[:termcap]?
+      @error = "" # TODO should be nil if no error
+
+      @terminfo_prefix = options[:terminfo_prefix]?
+      @terminfo_file = options[:terminfo_file]?
+      @termcap_file = options[:termcap_file]?
+
+      # XXX this is called even if terminal is initialized from ENV variable.
+      # In Blessed, it is called only if terminal is explicitly passed in options.
+      if @terminal
+        setup
+      end
+    end
+
+    def setup
+      @error = nil
+
+      begin
+        if @termcap
+          begin
+            inject_termcap
+          rescue e : Exception
+            raise e if @debug
+            @error = "Error" #Exception.new("Termcap parse error.")
+            #_use_internal_cap(@terminal) TODO
+          end
+        else
+          begin
+            inject_terminfo
+          rescue e : Exception
+            raise e if @debug
+            @error = "Error" #Exception.new("Terminfo parse error.")
+            #_use_internal_info(@terminal) TODO
+          end
+        end
+      end
+    end
+
+    def inject_termcap
+    end
+
+    def inject_terminfo
+    end
+
   end
 end
 
