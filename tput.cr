@@ -626,7 +626,7 @@ module Crysterm
 
     def initialize(**options)
       #@options = options
-      @terminal = ::Crysterm::Helpers.find_terminal(options)
+      @terminal = ::Crysterm::Helpers.find_terminal
       @debug = options[:debug]? || false
       @padding = options[:padding]?
       @extended = options[:extended]?
