@@ -622,12 +622,12 @@ module Crysterm
     @extended : Int32?
     @printf : Int32?
     @termcap : Int32?
-    @error : String?
+    getter error : Exception?
     @terminfo_prefix : String?
     @terminfo_file : String?
     @termcap_file : String?
 
-    def initialize(**options)
+    def initialize(terminal=::Crysterm::Helpers.find_terminal, **options)
       #@options = options
       @terminal = ::Crysterm::Helpers.find_terminal
       @debug = options[:debug]? || false
@@ -635,7 +635,6 @@ module Crysterm
       @extended = options[:extended]?
       @printf = options[:printf]?
       @termcap = options[:termcap]?
-      @error = "" # TODO should be nil if no error
 
       @terminfo_prefix = options[:terminfo_prefix]?
       @terminfo_file = options[:terminfo_file]?
@@ -657,7 +656,7 @@ module Crysterm
             inject_termcap
           rescue e : Exception
             raise e if @debug
-            @error = "Error" #Exception.new("Termcap parse error.")
+            @error = Exception.new("Termcap parse error.")
             #_use_internal_cap(@terminal) TODO
           end
         else
@@ -665,7 +664,7 @@ module Crysterm
             inject_terminfo
           rescue e : Exception
             raise e if @debug
-            @error = "Error" #Exception.new("Terminfo parse error.")
+            @error = Exception.new("Terminfo parse error.")
             #_use_internal_info(@terminal) TODO
           end
         end
