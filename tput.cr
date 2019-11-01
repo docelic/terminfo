@@ -613,16 +613,19 @@ module Crysterm
       ":sc=\\E7:rc=\\E8:cs=\\E[%i%d;%dr:vs=\\E[?7l:ve=\\E[?7h:" +
       ":mi:al=\\E[L:dc=\\E[P:dl=\\E[M:ei=\\E[4l:im=\\E[4h:"
 
-      @terminal : String
-      @debug : Bool
-      @padding : Int32?
-      @extended : Int32?
-      @printf : Int32?
-      @termcap : Int32?
-      @error : String?
-      @terminfo_prefix : String?
-      @terminfo_file : String?
-      @termcap_file : String?
+    AliasMap = {} of String => String
+    All = {} of String => String
+
+    @terminal : String
+    @debug : Bool
+    @padding : Int32?
+    @extended : Int32?
+    @printf : Int32?
+    @termcap : Int32?
+    @error : String?
+    @terminfo_prefix : String?
+    @terminfo_file : String?
+    @termcap_file : String?
 
     def initialize(**options)
       #@options = options
@@ -673,6 +676,20 @@ module Crysterm
     end
 
     def inject_terminfo
+    end
+
+    # Checks whether terminal feature exists
+    def has(name)
+      name = AliasMap[name]?
+      return unless name
+
+      val = All[name]
+
+      if val.is_a? Int
+        val != -1
+      else
+        !!val
+      end
     end
 
   end
