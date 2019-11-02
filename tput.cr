@@ -1,3 +1,5 @@
+require "../src/alias"
+
 # Resources:
 #   $ man term
 #   $ man terminfo
@@ -9,7 +11,7 @@
 #   be true (at least tmux thinks it should).
 #   It's not parsed as true. Investigate.
 # - Possibly switch to other method of finding the
-#   extended data string table: i += h.symOffsetCount * 2;
+#   extended data string table: i += h.symOffsetCount * 2
 
 module Crysterm
   DIR= "."
@@ -613,8 +615,43 @@ module Crysterm
       ":sc=\\E7:rc=\\E8:cs=\\E[%i%d;%dr:vs=\\E[?7l:ve=\\E[?7h:" +
       ":mi:al=\\E[L:dc=\\E[P:dl=\\E[M:ei=\\E[4l:im=\\E[4h:"
 
+    Alias = {} of String => Hash(String,String)
     AliasMap = {} of String => String
     All = {} of String => String
+
+    # XXX Why all these aren't fixed lists?
+    ::Crysterm::Alias::Bools.each do   |key, value| Alias[key] = {"terminfo" => value[0], "termcap" => value[1]} end
+    ::Crysterm::Alias::Numbers.each do |key, value| Alias[key] = {"terminfo" => value[0], "termcap" => value[1]} end
+    ::Crysterm::Alias::Strings.each do |key, value| Alias[key] = {"terminfo" => value[0], "termcap" => value[1]} end
+    # TODO
+    #Tput.alias.no_esc_ctlc.push('beehive_glitch')
+    #Tput.alias.dest_tabs_magic_smso.push('teleray_glitch')
+    #Tput.alias.micro_col_size.push('micro_char_size')
+    Alias.each do |key, value|
+      AliasMap[key] = key
+      AliasMap[key["terminfo"]] = key
+      AliasMap[key["termcap"]] = key
+    end
+
+    Ipaths = [
+      "/usr/share/terminfo",
+      "/usr/share/lib/terminfo",
+      "/usr/lib/terminfo",
+      "/usr/local/share/terminfo",
+      "/usr/local/share/lib/terminfo",
+      "/usr/local/lib/terminfo",
+      "/usr/local/ncurses/lib/terminfo",
+      "/lib/terminfo"
+    ]
+    # Addition 1
+    Ipaths.unshift (ENV["HOME"]? || "")+ "/.terminfo"
+    # Addition 2
+    if ENV["TERMINFO_DIRS"]?
+      dirs = ENV["TERMINFO_DIRS"].split(":")
+      dirs.reverse.each { |d| Ipaths.unshift d }
+    end
+    # Addition 3
+    if ENV["TERMINFO"]?; Ipaths.insert 0, ENV["TERMINFO"] end
 
     @terminal : String
     @debug : Bool
@@ -627,18 +664,18 @@ module Crysterm
     @terminfo_file : String?
     @termcap_file : String?
 
-    def initialize(terminal=::Crysterm::Helpers.find_terminal, **options)
-      #@options = options
-      @terminal = ::Crysterm::Helpers.find_terminal
-      @debug = options[:debug]? || false
-      @padding = options[:padding]?
-      @extended = options[:extended]?
-      @printf = options[:printf]?
-      @termcap = options[:termcap]?
-
-      @terminfo_prefix = options[:terminfo_prefix]?
-      @terminfo_file = options[:terminfo_file]?
-      @termcap_file = options[:termcap_file]?
+    def initialize(
+      # TODO adjust these defaults below and types above
+      @terminal = ::Crysterm::Helpers.find_terminal,
+      @debug = false,
+      @padding = 0,
+      @extended = 0,
+      @termcap = 0,
+      @terminfo_prefix = "",
+      @terminfo_file = "",
+      @termcap_file = "",
+      @force_unicode = detect_unicode,
+    )
 
       # XXX this is called even if terminal is initialized from ENV variable.
       # In Blessed, it is called only if terminal is explicitly passed in options.
@@ -657,7 +694,7 @@ module Crysterm
           rescue e : Exception
             raise e if @debug
             @error = Exception.new("Termcap parse error.")
-            #_use_internal_cap(@terminal) TODO
+            _use_internal_cap(@terminal)
           end
         else
           begin
@@ -665,16 +702,157 @@ module Crysterm
           rescue e : Exception
             raise e if @debug
             @error = Exception.new("Terminfo parse error.")
-            #_use_internal_info(@terminal) TODO
+            _use_internal_info(@terminal)
           end
         end
+      rescue e : Exception
+        raise e if @debug
+        @error = Exception.new("Terminfo not found.")
+        _use_xterm_info
       end
     end
 
+    # TODO
     def inject_termcap
     end
-
     def inject_terminfo
+    end
+    def _use_internal_cap(term)
+      inject_termcap DIR+"/../usr/"+File.basename(term)+".termcap"
+    end
+    def _use_internal_info(term)
+      inject_terminfo DIR+"/../usr/"+File.basename(term)
+    end
+    def _use_xterm_cap
+      inject_termcap DIR+"/../usr/xterm.termcap"
+    end
+    def _use_xterm_info
+      inject_terminfo DIR+"/../usr/xterm"
+    end
+    def _use_vt102_cap
+      inject_termcap "vt102"
+    end
+
+    def read_terminfo(term=@terminal)
+      file = _prefix(term)
+      data = File.read file
+      info = parse_terminfo data, file
+
+      if @debug
+        _terminfo = info
+      end
+
+      info
+    end
+
+    def _prefix(term= nil)
+      # If we have a terminfoFile, or our
+      # term looks like a filename, use it.
+      if term
+        if term.index File::SEPARATOR
+          return term
+        end
+        if @terminfo_file
+          return @terminfo_file
+        end
+      end
+
+      paths= Ipaths.dup
+
+      if (d= @terminfo_prefix)
+        paths.unshift d
+      end
+
+      # Try exact matches.
+      file = _tprefix(paths, term)
+      if (file)
+        return file
+      end
+
+      # Try similar matches.
+      file = _tprefix(paths, term, true)
+      if (file)
+        return file
+      end
+
+      # Not found.
+      raise Exception.new("Terminfo directory not found.")
+    end
+
+    def _tprefix(prefix : Array, term, soft= false)
+      prefix.each do |pref|
+        file = _tprefix(pref, term, soft)
+        if (file)
+          return file
+        end
+      end
+      nil
+    end
+
+    def _tprefix(prefix, term, soft= false)
+      if (!prefix)
+        return
+      end
+
+      sfile= nil
+      sdiff= 0
+
+      if (!term)
+        # Make sure the directory's sub-directories
+        # are all one-letter, or hex digits.
+        # return find('x') ? prefix : nil
+        begin
+          dir = Dir.children prefix
+
+          dir= dir.select { |file|
+            # NOTE file.size refers to filename length, not file contents length
+            ( file.size != 1) && !( file=~ /^[0-9a-fA-F]{2}$/)
+          }
+          if (dir.size== 0)
+            return prefix
+          end
+        rescue e : Exception
+        end
+        return
+      end
+
+      term = File.basename(term)
+      dir = find(prefix, term)
+
+      if (!dir)
+        return
+      end
+
+      if (soft)
+        begin
+          list = Dir.entries dir
+          list.delete "."
+          list.delete ".."
+        rescue e : Exception
+          return
+        end
+
+        list.each do |file|
+          if (file.index(term) == 0)
+            diff = file.size - term.size
+            if (!sfile || diff < sdiff)
+              sdiff = diff
+              sfile = file
+            end
+          end
+        end
+
+        # XXX path.resolve
+        return sfile && (soft || sdiff == 0) ? File.join(dir, sfile) : nil
+      end
+
+      file = resolve(dir, term)
+      begin
+        File.stat(file)
+        return file
+      rescue e : Exception
+      end
+      nil
     end
 
     # Checks whether terminal feature exists
@@ -690,6 +868,37 @@ module Crysterm
         !!val
       end
     end
+
+    def write(data)
+      # TODO maybe .to_slice?
+      STDOUT.write data
+    end
+
+    def noop
+      ""
+    end
+
+    # Chuckle
+    def get_console_cp
+      {% if flag? :unix %}return{% end %}
+      raise Exception.new "Not implemented"
+      # TODO
+    end
+
+    def detect_unicode
+      unless ENV["NCURSES_FORCE_UNICODE"]?.nil?
+        return ENV["NCURSES_FORCE_UNICODE"]==1
+      end
+
+      str = [ ENV["LANG"]?, ENV["LANGUAGE"]?, ENV["LC_ALL"]?, ENV["LC_CTYPE"] ].join ':'
+      str =~ /utf\-?8/ # TODO || (get_console_cp == 65001)
+    end
+
+    # XXX These as now coded do not support setting env var to 0.
+    # As soon as they're defined, they imply 1.
+    def detectMagicCookie; ENV["NCURSES_NO_MAGIC_COOKIE"]?.nil?  end
+    def detectPadding; ENV["NCURSES_NO_PADDING"]?.nil?  end
+    def detectSetbuf; ENV["NCURSES_NO_SETBUF"]?.nil?  end
 
   end
 end
