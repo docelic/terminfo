@@ -627,11 +627,12 @@ module Crysterm
     #Tput.alias.no_esc_ctlc.push('beehive_glitch')
     #Tput.alias.dest_tabs_magic_smso.push('teleray_glitch')
     #Tput.alias.micro_col_size.push('micro_char_size')
-    Alias.each do |key, value|
-      AliasMap[key] = key
-      AliasMap[key["terminfo"]] = key
-      AliasMap[key["termcap"]] = key
-    end
+    # TODO some keys missing here?
+    #Alias.each do |key, value|
+    #  AliasMap[key] = key
+    #  AliasMap[key["terminfo"]] = key
+    #  AliasMap[key["termcap"]] = key
+    #end
 
     Ipaths = [
       "/usr/share/terminfo",
@@ -663,6 +664,7 @@ module Crysterm
     @terminfo_prefix : String?
     @terminfo_file : String?
     @termcap_file : String?
+    @force_unicode : Bool
 
     def initialize(
       # TODO adjust these defaults below and types above
@@ -712,10 +714,14 @@ module Crysterm
       end
     end
 
-    # TODO
-    def inject_termcap
+    def term(is)
+      @_terminal[0..(is.size-1)] == is
     end
-    def inject_terminfo
+
+    # TODO
+    def inject_termcap(*arg)
+    end
+    def inject_terminfo(*arg)
     end
     def _use_internal_cap(term)
       inject_termcap DIR+"/../usr/"+File.basename(term)+".termcap"
@@ -765,15 +771,11 @@ module Crysterm
 
       # Try exact matches.
       file = _tprefix(paths, term)
-      if (file)
-        return file
-      end
+      return file if file
 
       # Try similar matches.
       file = _tprefix(paths, term, true)
-      if (file)
-        return file
-      end
+      return file if file
 
       # Not found.
       raise Exception.new("Terminfo directory not found.")
@@ -782,13 +784,11 @@ module Crysterm
     def _tprefix(prefix : Array, term, soft= false)
       prefix.each do |pref|
         file = _tprefix(pref, term, soft)
-        if (file)
-          return file
-        end
+        return file if file
       end
       nil
     end
-
+    # TODO implement/fix when we come to that.
     def _tprefix(prefix, term, soft= false)
       if (!prefix)
         return
@@ -890,8 +890,8 @@ module Crysterm
         return ENV["NCURSES_FORCE_UNICODE"]==1
       end
 
-      str = [ ENV["LANG"]?, ENV["LANGUAGE"]?, ENV["LC_ALL"]?, ENV["LC_CTYPE"] ].join ':'
-      str =~ /utf\-?8/ # TODO || (get_console_cp == 65001)
+      str = [ ENV["LANG"]?, ENV["LANGUAGE"]?, ENV["LC_ALL"]?, ENV["LC_CTYPE"]? ].join ':'
+      str =~ /utf\-?8/ ? true : false # TODO || (get_console_cp == 65001)
     end
 
     # XXX These as now coded do not support setting env var to 0.
@@ -899,6 +899,202 @@ module Crysterm
     def detectMagicCookie; ENV["NCURSES_NO_MAGIC_COOKIE"]?.nil?  end
     def detectPadding; ENV["NCURSES_NO_PADDING"]?.nil?  end
     def detectSetbuf; ENV["NCURSES_NO_SETBUF"]?.nil?  end
+
+
+    # Terminfo Parser
+    # All shorts are little-endian
+    #
+    alias TerminfoType = String | Int32 | UInt64 | Hash(String, Int32 | UInt64 | UInt16) | Array(String) | Hash(String, Bool) | Hash(String, UInt16) | Hash(String,String)
+    def parse_terminfo(data, file)
+      info = {} of String => TerminfoType
+    #    , extended
+      l = data.size
+      i = 0
+    #    , v
+    #    , o;
+
+      h = info["header"] = {
+        "dataSize"     => data.size,
+        "headerSize"   => 12,
+        "magicNumber"  => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[1] << 8) | data[0],
+        "namesSize"    => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[3] << 8) | data[2],
+        "boolCount"    => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[5] << 8) | data[4],
+        "numCount"     => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[7] << 8) | data[6],
+        "strCount"     => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[9] << 8) | data[8],
+        "strTableSize" => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[11] << 8) | data[10]
+      }
+
+      h["total"] =
+        h["headerSize"] +
+        h["namesSize"] +
+        h["boolCount"] +
+        h["numCount"] * 2 +
+        h["strCount"] * 2 +
+        h["strTableSize"]
+
+      i += h["headerSize"]
+
+      # Names Section
+      names= Bytes.new h["namesSize"]
+      data.read_utf8(names) # XXX how much does this read
+      names= names.to_s
+      parts= names.split '|'
+      name = parts[0]
+      desc = parts.pop()
+
+      #puts parts.inspect
+
+      info["name"] = name
+      info["names"] = parts
+      info["desc"] = desc
+
+      ## XXX resolve
+      info["dir"] = File.join(file, "..", "..")
+      info["file"] = file
+
+      i += h["namesSize"] - 1
+
+      #puts h.inspect
+
+      ### Names is nul-terminated.
+      #raise "Names must be nul-terminated" unless names[-1].ord==0
+      raise "Names must be nul-terminated" unless data[i].ord==0
+      i+=1
+
+      # Booleans Section
+      # One byte for each flag
+      # Same order as <term.h>
+      info["bools"] = {} of String => Bool
+      h["boolCount"].times do |o|
+        v = Bools[o]
+        b= data.read_byte
+        unless b
+          raise Exception.new "Unexpected value read from terminfo file."
+        end
+        b= b.to_u8
+        #puts "#{v} = #{b}"
+        info["bools"].as(Hash(String,Bool))[v]= ( b== 1)
+      end
+
+      i+= h["boolCount"];
+      #puts info.inspect
+      #puts i
+
+      # nil byte in between to make sure numbers begin on an even byte.
+      if (i % 2 != 0)
+        c= data.read_byte # This is padding, should contain nul-character
+        raise "Numbers must begin on even byte" unless c==0
+        i+= 1
+      end
+
+      # Numbers Section
+      info["numbers"] = {} of String => UInt16
+      h["numCount"].times do |o|
+        v= Numbers[o]
+        n= data.read_bytes(UInt16, IO::ByteFormat::LittleEndian).to_u16
+        #puts "#{v} = #{n}"
+        if data[i+1]==0xff && data[i]==0xff
+        #if n== 65535 #(data[i + 1] == 0xff && data[i] == 0xff)
+          # XXX Can we just ignore the non-existent value like this?
+          info["numbers"].as(Hash(String,Int32))[v] = -1
+        else
+          info["numbers"].as(Hash(String,UInt16))[v] = n
+        end
+      end
+      i+= h["numCount"]* 2
+
+      #puts info["numbers"]
+
+      # Now, in info["strings"] we have the positions/offsets inside the terminfo
+      # file and not the final data yet. Final data will come from reading the 
+      # strings at offsets and replacing the offsets with the strings' contents.
+
+      # TODO to rest of function
+
+#      # String Table
+#      info["strings"]= {} of String => String
+#      o=0
+#      h["strCount"].times do |l|
+#        v = Strings[o+=1]
+#        if (data[i + 1] === 0xff && data[i] === 0xff)
+#          info["strings"][v]=-1
+#        else
+#          info["strings"][v]=data.read_bytes(UInt16, IO::ByteFormat::LittleEndian).to_u16
+#        end
+#      end
+#      #is2= info["strings"].as Hash(String,String)
+#      ##data.set_encoding "ascii"
+#      #is.each do |key, value|
+#      #  data.pos= start+ value
+#      #  b= data.gets Char::ZERO, true
+#      #  next unless b
+#      #  is2[key]= b
+#      #  #puts "#{key} = #{x[key]}"
+#      #end
+#      ##puts is2.inspect
+#
+#      ## Strings Section
+#      string_offsets= {} of String => UInt16;
+#      l = i + h["strCount"] * 2;
+#      #o = 0;
+#
+#      ## Extract it here so we don't need to repeat it
+#      is= string_offsets
+#
+#      # XXX the && o< @strings.size added because strCount is 65535.
+#      # Not sure if this is a parsing bug, or the value is intentionally
+#      # at its max.
+#      h["strCount"].times do |o|
+#        #puts "i:#{i}, o:#{o}, strCount:#{h["strCount"]}, s#:#{@strings.size}"
+#        v = @strings[o];
+#        n= data.read_bytes(UInt16, IO::ByteFormat::LittleEndian).to_u16
+#        #puts "#{v} = #{n}"
+#        # Workaround: fix an odd bug in the screen-256color terminfo where it tries
+#        # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
+#        # TODO: Possibly handle errors gracefully below, as well as in the
+#        # extended info. Also possibly do: `if (info.strings[key] >= data.size)`.
+#        if n== 65535 || n== 65534
+#          # XXX same not as for numbers
+#        else
+#          is[v] = n
+#        end
+#      end
+#      i+= h["strCount"]* 2
+#      #puts i
+#      #puts data.pos
+#      #puts info["strings"]
+#
+#      # This is the starting location to which strings offsets are to be added
+#      start= data.pos
+#
+#      #// Extended Header
+#      if (@extended)
+#        i= data.pos= start+ h.strTableSize
+#        # nil byte in between to make sure numbers begin on an even byte.
+#        if (i % 2 != 0)
+#          c= data.read_byte # This is padding, should contain nul-character
+#          raise "Padding must be a nul-character" unless c==0
+#          i+= 1
+#        end
+#
+#        if i< data.size-1
+#          begin
+#            extended= parseExtended(data)
+#          rescue e : Exception
+#            if (@debug)
+#              raise e;
+#            end
+#            return info;
+#          end
+#          #info["header"]["extended"] = extended["header"];
+#          #info["bools"].merge extended["bools"]
+#          #info["numbers"].merge extended["numbers"]
+#          #info["strings"].merge extended["strings"]
+#        end
+#    end
+
+    return info
+  end
 
   end
 end
