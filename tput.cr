@@ -657,7 +657,7 @@ module Crysterm
     @terminal : String
     @debug : Bool
     @padding : Int32?
-    @extended : Int32?
+    @extended : Bool
     @printf : Int32?
     @termcap : Int32?
     getter error : Exception?
@@ -671,7 +671,7 @@ module Crysterm
       @terminal = ::Crysterm::Helpers.find_terminal,
       @debug = false,
       @padding = 0,
-      @extended = 0,
+      @extended = true,
       @termcap = 0,
       @terminfo_prefix = "",
       @terminfo_file = "",
@@ -722,6 +722,7 @@ module Crysterm
     def inject_termcap(*arg)
     end
     def inject_terminfo(*arg)
+      inject compile_terminfo term
     end
     def _use_internal_cap(term)
       inject_termcap DIR+"/../usr/"+File.basename(term)+".termcap"
@@ -740,9 +741,8 @@ module Crysterm
     end
 
     def read_terminfo(term=@terminal)
-      file = _prefix(term)
-      data = File.read file
-      info = parse_terminfo data, file
+      file = _prefix(term).not_nil!
+      info = parse_terminfo file
 
       if @debug
         _terminfo = info
@@ -752,6 +752,7 @@ module Crysterm
     end
 
     def _prefix(term= nil)
+      puts term
       # If we have a terminfoFile, or our
       # term looks like a filename, use it.
       if term
@@ -817,7 +818,7 @@ module Crysterm
       end
 
       term = File.basename(term)
-      dir = find(prefix, term)
+      #dir = find(prefix, term)
 
       if (!dir)
         return
@@ -904,169 +905,84 @@ module Crysterm
     # Terminfo Parser
     # All shorts are little-endian
     #
-    alias TerminfoType = String | Int32 | UInt64 | Hash(String, Int32 | UInt64 | UInt16) | Array(String) | Hash(String, Bool) | Hash(String, UInt16) | Hash(String,String)
-    def parse_terminfo(data, file)
-      info = {} of String => TerminfoType
-    #    , extended
-      l = data.size
+    #alias TerminfoType = String | Int32 | UInt64 | Hash(String, Int32 | UInt64 | UInt16) | Array(String) | Hash(String, Bool) | Hash(String, UInt16) | Hash(String,String)
+    #alias TerminfoType = Int32 | UInt16 | UInt64
+    def parse_terminfo(file)
       i = 0
-    #    , v
-    #    , o;
 
-      h = info["header"] = {
-        "dataSize"     => data.size,
-        "headerSize"   => 12,
-        "magicNumber"  => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[1] << 8) | data[0],
-        "namesSize"    => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[3] << 8) | data[2],
-        "boolCount"    => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[5] << 8) | data[4],
-        "numCount"     => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[7] << 8) | data[6],
-        "strCount"     => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[9] << 8) | data[8],
-        "strTableSize" => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[11] << 8) | data[10]
-      }
+      File.open(file) do |data|
 
-      h["total"] =
-        h["headerSize"] +
-        h["namesSize"] +
-        h["boolCount"] +
-        h["numCount"] * 2 +
-        h["strCount"] * 2 +
-        h["strTableSize"]
+        # HEADER
+        h= {
+          "dataSize"     => data.size,
+          "headerSize"   => 12,
+          "magicNumber"  => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[1] << 8) | data[0],
+          "namesSize"    => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[3] << 8) | data[2],
+          "boolCount"    => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[5] << 8) | data[4],
+          "numCount"     => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[7] << 8) | data[6],
+          "strCount"     => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[9] << 8) | data[8],
+          "strTableSize" => data.read_bytes(UInt16, IO::ByteFormat::LittleEndian), #(data[11] << 8) | data[10]
+        }
+        h["total"] =
+          h["headerSize"] +
+          h["namesSize"] +
+          h["boolCount"] +
+          h["numCount"] * 2 +
+          h["strCount"] * 2 +
+          h["strTableSize"]
 
-      i += h["headerSize"]
+        p h
 
-      # Names Section
-      names= Bytes.new h["namesSize"]
-      data.read_utf8(names) # XXX how much does this read
-      names= names.to_s
-      parts= names.split '|'
-      name = parts[0]
-      desc = parts.pop()
+        # Names Section
+        names = data.read_string h["namesSize"] # XXX how much does this read
+        parts= names.split '|'
+        name = parts[0]
+        desc = parts.pop()
 
-      #puts parts.inspect
+        # Names is nul-terminated, check for it.
+        raise "Names must be nul-terminated" unless names[-1].ord==0
 
-      info["name"] = name
-      info["names"] = parts
-      info["desc"] = desc
-
-      ## XXX resolve
-      info["dir"] = File.join(file, "..", "..")
-      info["file"] = file
-
-      i += h["namesSize"] - 1
-
-      #puts h.inspect
-
-      ### Names is nul-terminated.
-      #raise "Names must be nul-terminated" unless names[-1].ord==0
-      raise "Names must be nul-terminated" unless data[i].ord==0
-      i+=1
-
-      # Booleans Section
-      # One byte for each flag
-      # Same order as <term.h>
-      info["bools"] = {} of String => Bool
-      h["boolCount"].times do |o|
-        v = Bools[o]
-        b= data.read_byte
-        unless b
-          raise Exception.new "Unexpected value read from terminfo file."
+        # Booleans Section
+        # One byte for each flag
+        # Same order as <term.h>
+        bools = Hash(String,Bool)
+        h["boolCount"].times do |i|
+          v = Bools[i]
+          #puts "#{v} = #{data.read_bytes(UInt8, IO::ByteFormat::LittleEndian) == 1}"
         end
-        b= b.to_u8
-        #puts "#{v} = #{b}"
-        info["bools"].as(Hash(String,Bool))[v]= ( b== 1)
-      end
 
-      i+= h["boolCount"];
-      #puts info.inspect
-      #puts i
-
-      # nil byte in between to make sure numbers begin on an even byte.
-      if (i % 2 != 0)
-        c= data.read_byte # This is padding, should contain nul-character
-        raise "Numbers must begin on even byte" unless c==0
-        i+= 1
-      end
-
-      # Numbers Section
-      info["numbers"] = {} of String => UInt16
-      h["numCount"].times do |o|
-        v= Numbers[o]
-        n= data.read_bytes(UInt16, IO::ByteFormat::LittleEndian).to_u16
-        #puts "#{v} = #{n}"
-        if data[i+1]==0xff && data[i]==0xff
-        #if n== 65535 #(data[i + 1] == 0xff && data[i] == 0xff)
-          # XXX Can we just ignore the non-existent value like this?
-          info["numbers"].as(Hash(String,Int32))[v] = -1
-        else
-          info["numbers"].as(Hash(String,UInt16))[v] = n
+        # Numbers Section
+        h["numCount"].times do |i|
+          v = Numbers[i]
+          n = data.read_bytes(UInt16, IO::ByteFormat::LittleEndian)
+          n=-1 if n == 65535
+          #puts "#{v} = #{n}"
         end
-      end
-      i+= h["numCount"]* 2
 
-      #puts info["numbers"]
+        # Strings section
+        h["strCount"].times do |i|
+          v = Strings[i]
+          n = data.read_bytes(UInt16, IO::ByteFormat::LittleEndian)
+          # Workaround: fix an odd bug in the screen-256color terminfo where it tries
+          # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
+          if n>0 && n<65534
+            data.seek -2, ::IO::Seek::Current
+            n = data.read_string(2)
+            puts "#{v} = #{n}"
+          end
+        end
 
-      # Now, in info["strings"] we have the positions/offsets inside the terminfo
-      # file and not the final data yet. Final data will come from reading the 
-      # strings at offsets and replacing the offsets with the strings' contents.
+        # Extended header
+        if @extended
+          # TODO
+        end
 
-      # TODO to rest of function
+        # TODO reject string keys with value >= 65534
 
-#      # String Table
-#      info["strings"]= {} of String => String
-#      o=0
-#      h["strCount"].times do |l|
-#        v = Strings[o+=1]
-#        if (data[i + 1] === 0xff && data[i] === 0xff)
-#          info["strings"][v]=-1
-#        else
-#          info["strings"][v]=data.read_bytes(UInt16, IO::ByteFormat::LittleEndian).to_u16
-#        end
-#      end
-#      #is2= info["strings"].as Hash(String,String)
-#      ##data.set_encoding "ascii"
-#      #is.each do |key, value|
-#      #  data.pos= start+ value
-#      #  b= data.gets Char::ZERO, true
-#      #  next unless b
-#      #  is2[key]= b
-#      #  #puts "#{key} = #{x[key]}"
-#      #end
-#      ##puts is2.inspect
-#
-#      ## Strings Section
-#      string_offsets= {} of String => UInt16;
-#      l = i + h["strCount"] * 2;
-#      #o = 0;
-#
-#      ## Extract it here so we don't need to repeat it
-#      is= string_offsets
-#
-#      # XXX the && o< @strings.size added because strCount is 65535.
-#      # Not sure if this is a parsing bug, or the value is intentionally
-#      # at its max.
-#      h["strCount"].times do |o|
-#        #puts "i:#{i}, o:#{o}, strCount:#{h["strCount"]}, s#:#{@strings.size}"
-#        v = @strings[o];
-#        n= data.read_bytes(UInt16, IO::ByteFormat::LittleEndian).to_u16
-#        #puts "#{v} = #{n}"
-#        # Workaround: fix an odd bug in the screen-256color terminfo where it tries
-#        # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
-#        # TODO: Possibly handle errors gracefully below, as well as in the
-#        # extended info. Also possibly do: `if (info.strings[key] >= data.size)`.
-#        if n== 65535 || n== 65534
-#          # XXX same not as for numbers
-#        else
-#          is[v] = n
-#        end
-#      end
-#      i+= h["strCount"]* 2
-#      #puts i
-#      #puts data.pos
-#      #puts info["strings"]
-#
-#      # This is the starting location to which strings offsets are to be added
-#      start= data.pos
-#
+      # Parsing seems correct up to here
+
+       return
+
 #      #// Extended Header
 #      if (@extended)
 #        i= data.pos= start+ h.strTableSize
@@ -1093,7 +1009,13 @@ module Crysterm
 #        end
 #    end
 
-    return info
+    end
+
+    #return info
+  end
+
+  def compile_terminfo(term)
+    compile read_terminfo term
   end
 
   end
