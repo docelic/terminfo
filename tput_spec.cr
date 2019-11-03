@@ -64,17 +64,18 @@ describe "Tput" do
 
   # TODO enable when possible
   # parse_terminfo tests:
-  # For xterm, non-extended header:
+
+  # For ../usr/xterm, non-extended header:
   # { dataSize: 3270,
   #   headerSize: 12,
   #   magicNumber: 282,
-  #   namesSize: 48,
+  #   namesSize: 28,
   #   boolCount: 38,
   #   numCount: 15,
   #   strCount: 413,
   #   strTableSize: 1388,
-  #   total: 2342 }
-  #
+  #   total: 2322 }
+
   # For xterm, header:
   # Offset: 2342
   # { header:

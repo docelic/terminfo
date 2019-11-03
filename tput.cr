@@ -1,3 +1,4 @@
+require "../src/crysterm"
 require "../src/tput"
 require "../src/helpers"
 
