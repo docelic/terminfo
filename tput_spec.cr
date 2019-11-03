@@ -76,7 +76,7 @@ describe "Tput" do
   #   strTableSize: 1388,
   #   total: 2322 }
 
-  # For xterm, header:
+  # For xterm, extended header:
   # Offset: 2342
   # { header:
   #    { dataSize: 928,
@@ -87,5 +87,8 @@ describe "Tput" do
   #      strTableSize: 117,
   #      lastStrTableOffset: 680,
   #      total: 245 },
+  # For ./usr/xterm:
+  #  {"dataSize" => 3337, "headerSize" => 10, "boolCount" => 2, "numCount" => 0, "strCount" => 62, "strTableSize" => 126, "lastStrTableOffset" => 751, "total" => 262}
+
 end
 
