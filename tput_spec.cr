@@ -35,30 +35,56 @@ describe "Tput" do
     obj.term("abcdef").should be_true
   end
 
-  it "can detect features" do
-    obj = ::Crysterm::Tput.new(terminal="xterm")
+  # TODO enable this test when term files are loaded via
+  # baked filesystem
+  #it "can detect features" do
+  #  obj = ::Crysterm::Tput.new(terminal="xterm")
 
-    obj.detect_magic_cookie.should be_true
-    obj.detect_padding.should be_true
-    obj.detect_setbuf.should be_true
+  #  obj.detect_magic_cookie.should be_true
+  #  obj.detect_padding.should be_true
+  #  obj.detect_setbuf.should be_true
 
-    ENV["NCURSES_NO_MAGIC_COOKIE"]="1"
-    ENV["NCURSES_NO_PADDING"]="1"
-    ENV["NCURSES_NO_SETBUF"]="1"
+  #  ENV["NCURSES_NO_MAGIC_COOKIE"]="1"
+  #  ENV["NCURSES_NO_PADDING"]="1"
+  #  ENV["NCURSES_NO_SETBUF"]="1"
 
-    obj.detect_magic_cookie.should be_false
-    obj.detect_padding.should be_false
-    obj.detect_setbuf.should be_false
+  #  obj.detect_magic_cookie.should be_false
+  #  obj.detect_padding.should be_false
+  #  obj.detect_setbuf.should be_false
 
-    ENV.delete "NCURSES_NO_MAGIC_COOKIE"
-    ENV.delete "NCURSES_NO_PADDING"
-    ENV.delete "NCURSES_NO_SETBUF"
+  #  ENV.delete "NCURSES_NO_MAGIC_COOKIE"
+  #  ENV.delete "NCURSES_NO_PADDING"
+  #  ENV.delete "NCURSES_NO_SETBUF"
 
-    info = obj.read_terminfo("./usr/xterm")
-    obj.detect_pcrom_set(info).should be_false
+  #  info = obj.read_terminfo("./usr/xterm")
+  #  obj.detect_pcrom_set(info).should be_false
 
-    # TODO detect_unicode not tested currently
+  #  # TODO detect_unicode not tested currently
+  #end
 
-  end
+  # TODO enable when possible
+  # parse_terminfo tests:
+  # For xterm, non-extended header:
+  # { dataSize: 3270,
+  #   headerSize: 12,
+  #   magicNumber: 282,
+  #   namesSize: 48,
+  #   boolCount: 38,
+  #   numCount: 15,
+  #   strCount: 413,
+  #   strTableSize: 1388,
+  #   total: 2342 }
+  #
+  # For xterm, header:
+  # Offset: 2342
+  # { header:
+  #    { dataSize: 928,
+  #      headerSize: 10,
+  #      boolCount: 2,
+  #      numCount: 1,
+  #      strCount: 57,
+  #      strTableSize: 117,
+  #      lastStrTableOffset: 680,
+  #      total: 245 },
 end
 
