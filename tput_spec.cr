@@ -36,7 +36,7 @@ describe "Tput" do
   end
 
   it "can detect features" do
-    obj = ::Crysterm::Tput.new
+    obj = ::Crysterm::Tput.new(terminal="xterm")
 
     obj.detect_magic_cookie.should be_true
     obj.detect_padding.should be_true
@@ -53,6 +53,9 @@ describe "Tput" do
     ENV.delete "NCURSES_NO_MAGIC_COOKIE"
     ENV.delete "NCURSES_NO_PADDING"
     ENV.delete "NCURSES_NO_SETBUF"
+
+    info = obj.read_terminfo("./usr/xterm")
+    obj.detect_pcrom_set(info).should be_false
 
     # TODO detect_unicode not tested currently
 
