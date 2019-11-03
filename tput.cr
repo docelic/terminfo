@@ -719,9 +719,9 @@ module Crysterm
     end
 
     # TODO
-    def inject_termcap(*arg)
+    def inject_termcap(term=@terminal)
     end
-    def inject_terminfo(*arg)
+    def inject_terminfo(term=@terminal)
       inject compile_terminfo term
     end
     def _use_internal_cap(term)
@@ -1016,6 +1016,11 @@ module Crysterm
 
   def compile_terminfo(term)
     compile read_terminfo term
+  end
+
+  def compile(arg)
+  end
+  def inject(arg)
   end
 
   end
