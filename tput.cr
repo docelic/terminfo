@@ -5,8 +5,9 @@ require "../src/helpers"
 class T < ::Crysterm::Tput
 end
 
-t = T.new
-t.read_terminfo("./usr/xterm")
+t = T.new(terminfo_file: "./usr/xterm")
+t.read_terminfo
+t.compile_terminfo
 
 #p t.terminal
 
