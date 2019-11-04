@@ -29,10 +29,9 @@ describe "Tput" do
   end
 
   it "can report term" do
-    obj = ::Crysterm::Tput.new(terminal="abcdef-256color")
-    obj.term("xterm").should be_false
-    obj.term("abcdef").should be_true
-    obj.term("abcdef").should be_true
+    obj = ::Crysterm::Tput.new(terminal="xterm-256color")
+    obj.term("xterm").should be_true
+    obj.term("abcdef").should be_false
   end
 
   # TODO enable this test when term files are loaded via
@@ -56,7 +55,7 @@ describe "Tput" do
   #  ENV.delete "NCURSES_NO_PADDING"
   #  ENV.delete "NCURSES_NO_SETBUF"
 
-  #  info = obj.read_terminfo("./usr/xterm")
+  #  info = obj.read_terminfo("/terminfo/xterm")
   #  obj.detect_pcrom_set(info).should be_false
 
   #  # TODO detect_unicode not tested currently
@@ -65,7 +64,7 @@ describe "Tput" do
   # TODO enable when possible
   # parse_terminfo tests:
 
-  # For ../usr/xterm, non-extended header:
+  # For ../filesystem/terminfo/xterm, non-extended header:
   # { dataSize: 3270,
   #   headerSize: 12,
   #   magicNumber: 282,
@@ -87,7 +86,7 @@ describe "Tput" do
   #      strTableSize: 117,
   #      lastStrTableOffset: 680,
   #      total: 245 },
-  # For ./usr/xterm:
+  # For ./filesystem/terminfo/xterm:
   #  {"dataSize" => 3337, "headerSize" => 10, "boolCount" => 2, "numCount" => 0, "strCount" => 62, "strTableSize" => 126, "lastStrTableOffset" => 751, "total" => 262}
 
 end
