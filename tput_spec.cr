@@ -18,9 +18,9 @@ describe "Tput" do
     ::Crysterm::Tput::Utoa["\u2524"].should eq "+"
   end
 
-  it "has fallback termcap" do
-    ::Crysterm::Tput::Termcap.should be_a String
-  end
+  #it "has fallback termcap" do
+  #  ::Crysterm::Tput::Termcap.should be_a String
+  #end
 
   # XXX does tput need to be a class? Can it be a module?
   it "can instantiate" do
