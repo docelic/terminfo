@@ -1,6 +1,7 @@
 require "../src/crysterm"
 require "../src/tput"
 require "../src/helpers"
+require "../src/crysterm_post"
 
 class T < ::Crysterm::Tput
 end
