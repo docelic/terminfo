@@ -1,17 +1,6 @@
 require "./spec_helper"
 
 describe "Tput" do
-  it "contains bools, numbers, and strings" do
-    ::Crysterm::Tput::Bools.class.should   eq Array(String)
-    ::Crysterm::Tput::Numbers.class.should eq Array(String)
-    ::Crysterm::Tput::Strings.class.should eq Array(String)
-  end
-
-  it "has values in bools, numbers, and strings" do
-    ::Crysterm::Tput::Bools[0].should eq "auto_left_margin"
-    ::Crysterm::Tput::Numbers[10].should  eq "label_width"
-    ::Crysterm::Tput::Strings[-1].should eq "box_chars_1"
-  end
 
   it "has acsc and utoa" do
     ::Crysterm::Tput::Acsc["c"].should eq "\u000c"
@@ -61,33 +50,6 @@ describe "Tput" do
   #  # TODO detect_unicode not tested currently
   #end
 
-  # TODO enable when possible
-  # parse_terminfo tests:
-
-  # For ../filesystem/terminfo/xterm, non-extended header:
-  # { dataSize: 3270,
-  #   headerSize: 12,
-  #   magicNumber: 282,
-  #   namesSize: 28,
-  #   boolCount: 38,
-  #   numCount: 15,
-  #   strCount: 413,
-  #   strTableSize: 1388,
-  #   total: 2322 }
-
-  # For xterm, extended header:
-  # Offset: 2342
-  # { header:
-  #    { dataSize: 928,
-  #      headerSize: 10,
-  #      boolCount: 2,
-  #      numCount: 1,
-  #      strCount: 57,
-  #      strTableSize: 117,
-  #      lastStrTableOffset: 680,
-  #      total: 245 },
-  # For ./filesystem/terminfo/xterm:
-  #  {"dataSize" => 3337, "headerSize" => 10, "boolCount" => 2, "numCount" => 0, "strCount" => 62, "strTableSize" => 126, "lastStrTableOffset" => 751, "total" => 262}
 
 end
 
