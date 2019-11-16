@@ -24,7 +24,7 @@ Add the dependency to `shard.yml`:
 dependencies:
   terminfo:
     github: crystallabs/terminfo
-    version: 0.5.0
+    version: 0.6.0
 ```
 
 ## Usage in a nutshell
