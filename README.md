@@ -50,7 +50,7 @@ p my.header
 p my2.extended_header
 
 # Print out a couple raw values. Use p() which inspects variables.
-# Using puts() would output escape sequences to the terminal.
+# Using puts() would output any escape sequences to the terminal.
 p my.booleans["auto_left_margin"] # => false
 p my.numbers["columns"]           # => 80
 p my.strings["back_tab"]          # => \e[Z
@@ -72,7 +72,7 @@ For a lookup in standard terminfo files or directories, specify terminal name:
 data = Terminfo::Data.new term: "xterm"
 ```
 
-The file and directory search order is from first to last:
+The default directory search order from first to last:
 
 ```
 ENV["TERMINFO_DIRS"]/     # (List of directory paths split by ":")
@@ -84,8 +84,10 @@ ENV["HOME"]/.terminfo/
 /usr/local/share/lib/terminfo/
 /usr/local/lib/terminfo/
 /usr/local/ncurses/lib/terminfo/
-/lib/terminfo/**
+/lib/terminfo/
 ```
+
+Directory search order can be changed by modifying `Terminfo.paths`.
 
 A file is searched in each directory using two attempts:
 
@@ -101,7 +103,7 @@ data = Terminfo::Data.new builtin: "xterm"
 ```
 
 Built-in terminfo definitions can be changed by modifying the contents of the
-directory `filesystem/`. Currently available terminfo files are:
+directory `filesystem/`. Currently available built-in terminfo files are:
 
 ```
 linux
@@ -116,8 +118,9 @@ For autodetection, request it with:
 data = Terminfo::Data.new auto: true
 ```
 
-If file `ENV["TERMINFO"]` exists, it will be used instead of performing
-autodetection.
+If environment variable `ENV["TERMINFO"]` exists, it will be used as terminfo
+file path instead of performing autodetection, and the term name will be read
+from the file.
 
 Otherwise, autodetection will be performed and the terminfo file will be
 searched in the above documented directories.
