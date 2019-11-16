@@ -160,7 +160,7 @@ data = Terminfo::Data.new term: "xterm"
    @numbers_size=0,
    @strings_size=62,
    @strings_table_size=126,
-   @sym_offset_size=64,
+   @symbol_offsets_size=64,
    @total_size=262>,
 
  @booleans=

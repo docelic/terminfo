@@ -42,7 +42,7 @@ describe Terminfo do
       :strings_size => 62,
       :strings_table_size => 126,
       :last_strings_table_offset => 751,
-      :symbols_offset_size => 64,
+      :symbol_offsets_size => 64,
       :total_size => 262,
     })
 
