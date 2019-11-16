@@ -3,11 +3,12 @@ require "baked_file_system"
 require "./alias"
 
 module Terminfo
-  VERSION = "0.4.0"
+  VERSION = "0.5.0"
 
   extend BakedFileSystem
   bake_folder "../filesystem/"
 
+  # List of default directories to search for terminfo files
   class_property directories = [] of String
 
   (i=ENV["TERMINFO"]?).try      do |i| @@directories.push i end
@@ -23,6 +24,9 @@ module Terminfo
     "/usr/local/ncurses/lib/terminfo",
     "/lib/terminfo"
 
+  # All supported boolean capabilities/functions.
+  # This list is somewhat larger than the list of capabilities in `src/alias.cr`
+  # due to extra additions.
   Booleans = [
     "auto_left_margin",
     "auto_right_margin",
@@ -71,7 +75,9 @@ module Terminfo
     "return_does_clr_eol",
   ]
 
-  # Terminfo numbers
+  # All supported numeric capabilities/functions.
+  # This list is somewhat larger than the list of capabilities in `src/alias.cr`
+  # due to extra additions.
   Numbers = [
     "columns",
     "init_tabs",
@@ -115,7 +121,9 @@ module Terminfo
     "number_of_function_keys",
   ]
 
-  # Terminfo strings
+  # All supported string capabilities/functions.
+  # This list is somewhat larger than the list of capabilities in `src/alias.cr`
+  # due to extra additions.
   Strings = [
     "back_tab",
     "bell",
@@ -534,34 +542,57 @@ module Terminfo
     "box_chars_1",
   ]
 
-  def self.has_internal?(name) !! get? name end
-  def self.get_internal(name) get name end
-  def self.get_internal?(name) get? name end
+  # Checks whether *term* exists in the module's built-in storage.
+  def self.has_internal?(term) !! get? term end
 
+  # Retrieves *term* from module's built-in storage.
+  #
+  # It returns BakedFileSystem::BakedFile. To read full contents,
+  # call `#read` on the object.
+  def self.get_internal(term) get term end
+
+  # Retrieves *term* from module's built-in storage or nil if
+  # it is not found.
+  #
+  # It returns BakedFileSystem::BakedFile. To read full contents,
+  # call `#read` on the object.
+  def self.get_internal?(term) get? term end
+
+  # Contents of terminfo file header
   property header : Header
+  # Name of parsed terminfo term
   property name : String
+  # Any alias names of parsed terminfo term. This list does not include
+  # the main name which is available in `#name`.
   property names : Array(String)
+  # Description from the parsed terminfo
   property description : String
+  # List of boolean capabilities
   property booleans : Hash(String,Bool)
+  # List of numeric capabilities
   property numbers : Hash(String,Int16)
+  # List of string capabilities
   property strings : Hash(String,String)
 
+  # Contents of extended terminfo file header
   property extended_header : ExtendedHeader?
+  # List of boolean capabilities from extended data
+  property booleans : Hash(String,Bool)
   property extended_booleans : Hash(String,Bool)
+  # List of numeric capabilities from extended data
   property extended_numbers : Hash(String,Int16)
+  # List of string capabilities from extended data
   property extended_strings : Hash(String,String)
 
-  # TODO turn this into one that searches system
-  # directories, then falls back to internal version.
-  # Still open question: how to differentiate between a
-  # filesystem path, and relative path, and just terminfo
-  # name, and internal name?
+  # Create Terminfo object and parse specified terminfo data
   def initialize(*, path : String)
     File.open(path) do |io| initialize path, io end
   end
+  # :ditto:
   def initialize(*, builtin : String)
     initialize ::Terminfo.get_internal builtin
   end
+  # :ditto:
   def initialize(*, term : String)
     filename = nil
     ::Terminfo.directories.each do |dir|
@@ -587,6 +618,7 @@ module Terminfo
       end
     end
   end
+  # :ditto:
   def initialize(autodetect : Bool)
     if filename = ENV["TERMINFO"]?
       initialize path: filename
@@ -597,13 +629,16 @@ module Terminfo
     end
   end
 
+  # :ditto:
   def initialize(file : BakedFileSystem::BakedFile)
     initialize file, ::IO::Memory.new file.read
   end
+  # :ditto:
   def initialize(file : File)
     initialize file
   end
 
+  # :ditto:
   def initialize(file, io : IO, extended = true)
 
     # The format has been chosen so that it will be the same on all hardware.
@@ -856,6 +891,7 @@ module Terminfo
     { header, booleans, numbers, strings }
   end
 
+  # Conventional (non-extended) terminfo header data
   class Header
     property data_size : Int16
     property header_size : Int16
@@ -880,6 +916,7 @@ module Terminfo
       @total_size     = @header_size + @names_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
     end
 
+    # Converts Terminfo header object to Hash
     def to_h
       {
         :data_size          => @data_size,
@@ -895,6 +932,7 @@ module Terminfo
     end
   end
 
+  # Extended terminfo header data
   class ExtendedHeader
     property header_size : Int16
     property booleans_size : Int16
@@ -916,6 +954,7 @@ module Terminfo
       @total_size            = @header_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
     end
 
+    # Converts extended Terminfo header object to Hash
     def to_h
       {
         :header_size         => @header_size,
@@ -930,6 +969,10 @@ module Terminfo
     end
   end
 
+  # Represents complete terminfo data.
+  #
+  # This class should be used when a Terminfo class is preferred
+  # over using a module.
   class Data
     include ::Terminfo
   end

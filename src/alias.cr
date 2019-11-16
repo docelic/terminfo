@@ -1,9 +1,9 @@
 module Terminfo
-  # Mappings between symbolic, terminfo, and termcap names.
-  # Taken from terminfo(5) man page.
+  # Mappings between symbolic, terminfo, and termcap names. Taken from terminfo(5) man page.
+  # These mappings cover predefined capabilities (i.e. not those from extended terminfo data.)
   module Alias
 
-    # These are the boolean capabilities
+    # Boolean terminfo capabilities
     Booleans = {
       #         Variable             Tinfo     TCap      Description
       #         Booleans             name      Code
@@ -46,7 +46,7 @@ module Terminfo
       "xon_xoff" =>                  {"xon",   "xo"}  #  terminal uses xon/xoff handshaking
     };
 
-    # These are the numeric capabilities
+    # Numeric terminfo capabilities
     Numbers = {
       #         Variable             Tinfo     TCap      Description
       #          Numeric             name      Code
@@ -92,7 +92,7 @@ module Terminfo
       "wide_char_size" =>            {"widcs", "Yn"}  #  character step size when in double wide mode
     };
 
-    # These are the string capabilities
+    # String terminfo capabilities
     Strings = {
       #         Variable             Tinfo     TCap      Description
       #          String              name      Code
