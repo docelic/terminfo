@@ -8,12 +8,13 @@ Terminfo is a terminfo parsing library for Crystal.
 
 It supports:
 
+1. Auto-detecting and searching for terminfo files
 1. Parsing terminfo files using regular and extended format
 1. Summarizing the content of terminfo files
 1. Providing raw access to parsed terminfo data
 1. Using internally stored terminfo data for most common terminals
 
-It is implemented in Crystal and does not depend on ncurses or any other external parsing library.
+It is implemented natively and does not depend on ncurses or other external library.
 
 ## Installation
 
@@ -53,6 +54,72 @@ p "Boolean auto_left_margin = %s" % my.booleans["auto_left_margin"]
 p "Number columns = %s" % my.numbers["columns"]
 p "String back_tab = %s" % my.strings["back_tab"]
 ```
+
+## Terminfo files
+
+Terminfo can read files from disk as well as from internal (compiled-in) storage.
+
+For filesystem access, specify terminfo files as absolute or relative paths and they will be read from the specified location.
+
+```
+data = Terminfo::Data.new path: "/path/to/t/te/terminfo_file"
+```
+
+For a lookup in standard terminfo files or directories, specify terminal name:
+
+```
+data = Terminfo::Data.new term: "xterm"
+```
+
+The file and directory search order is from first to last:
+
+```
+ENV["TERMINFO_DIRS"]/     # (List of directory paths split by ":")
+ENV["HOME"]/.terminfo/
+/usr/share/terminfo/
+/usr/share/lib/terminfo/
+/usr/lib/terminfo/
+/usr/local/share/terminfo/
+/usr/local/share/lib/terminfo/
+/usr/local/lib/terminfo/
+/usr/local/ncurses/lib/terminfo/
+/lib/terminfo/**
+```
+
+A file is searched in each directory using two attempts:
+
+```
+./file
+./f/fi/file
+```
+
+For a lookup in this module's built-in storage, specify built-in name:
+
+```
+data = Terminfo::Data.new builtin: "xterm"
+```
+
+Built-in terminfo definitions can be changed by modifying the contents of the
+directory `filesystem/`. Currently available terminfo files are:
+
+```
+linux
+windows-ansi
+xterm
+xterm-256color
+```
+
+For autodetection, request it with:
+
+```
+data = Terminfo::Data.new auto: true
+```
+
+If file `ENV["TERMINFO"]` exists, it will be used instead of performing
+autodetection.
+
+Otherwise, autodetection will be performed and the terminfo file will be
+searched in the above documented directories.
 
 ## API documentation
 
