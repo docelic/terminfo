@@ -770,10 +770,14 @@ module Terminfo
     high = 0 # Index at which string table is done
     _strings2 = [] of String
     _strings.each do |offset|
-      next if offset == -1
-      io.seek pos+offset, ::IO::Seek::Set
-      _strings2.push io.gets(Char::ZERO,true) || ""
-      high = io.pos if io.pos > high
+      if offset == -1
+         # XXX or just next?
+        _strings2.push ""
+      else
+        io.seek pos+offset, ::IO::Seek::Set
+        _strings2.push io.gets(Char::ZERO,true) || ""
+        high = io.pos if io.pos > high
+      end
     end
 
     io.seek high, ::IO::Seek::Set
@@ -840,6 +844,20 @@ module Terminfo
       @strings_table_size = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[11] << 8) | io[10]
       @total_size     = @header_size + @names_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
     end
+
+    def to_h
+      {
+        :data_size          => @data_size,
+        :header_size        => @header_size,
+        :magic_number       => @magic_number,
+        :names_size         => @names_size,
+        :booleans_size      => @booleans_size,
+        :numbers_size       => @numbers_size,
+        :strings_size       => @strings_size,
+        :strings_table_size => @strings_table_size,
+        :total_size         => @total_size,
+      }
+    end
   end
 
   class ExtendedHeader
@@ -861,6 +879,19 @@ module Terminfo
       @last_strings_table_offset = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
       @sym_offset_size       = @strings_table_size - @strings_size
       @total_size            = @header_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
+    end
+
+    def to_h
+      {
+        :header_size        => @header_size,
+        :booleans_size      => @booleans_size,
+        :numbers_size       => @numbers_size,
+        :strings_size       => @strings_size,
+        :strings_table_size => @strings_table_size,
+        :last_strings_table_offset => @last_strings_table_offset,
+        :sym_offset_size    => @sym_offset_size,
+        :total_size         => @total_size,
+      }
     end
   end
 
