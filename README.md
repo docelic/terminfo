@@ -56,17 +56,17 @@ p my.numbers["columns"]           # => 80
 p my.strings["back_tab"]          # => \e[Z
 ```
 
-## Terminfo files
+## Terminfo initialization
 
-Terminfo can read files from disk as well as from internal (compiled-in) storage.
+Terminfo can read terminfo data from files on disk as well as from internal (compiled-in) storage.
 
-For filesystem access, specify terminfo files as absolute or relative paths and they will be read from the specified location.
+For filesystem access, specify terminfo files as absolute or relative paths:
 
 ```
 data = Terminfo::Data.new path: "/path/to/t/te/terminfo_file"
 ```
 
-For a lookup in standard terminfo files or directories, specify terminal name:
+For lookup in default terminfo directories, specify term name:
 
 ```
 data = Terminfo::Data.new term: "xterm"
@@ -96,7 +96,7 @@ A file is searched in each directory using two attempts:
 ./f/fi/file
 ```
 
-For a lookup in this module's built-in storage, specify built-in name:
+For lookup in the module's built-in storage, specify built-in name:
 
 ```
 data = Terminfo::Data.new builtin: "xterm"
@@ -118,12 +118,77 @@ For autodetection, request it with:
 data = Terminfo::Data.new auto: true
 ```
 
-If environment variable `ENV["TERMINFO"]` exists, it will be used as terminfo
+If environment variable `ENV["TERMINFO"]` exists, it will be used as the terminfo
 file path instead of performing autodetection, and the term name will be read
 from the file.
 
 Otherwise, autodetection of the terminal will be performed and the equivalent
 terminfo file will be searched in the above documented directories.
+
+## Terminfo data
+
+Once you have instantiated Terminfo via your own class or built-in `Terminfo::Data`,
+the following properties and data structurewill be available:
+
+```
+data = Terminfo::Data.new term: "xterm"
+
+# pp data
+
+#<Terminfo::Data
+ @name="xterm",
+ @names=["xterm-debian"],
+ @description="X11 terminal emulator",
+
+ @header=
+  #<Terminfo::Header
+   @booleans_size=38,
+   @data_size=3360,
+   @header_size=12,
+   @magic_number=282,
+   @names_size=41,
+   @numbers_size=15,
+   @strings_size=413,
+   @strings_table_size=1397,
+   @total_size=2344>,
+
+ @extended_header=
+  #<Terminfo::ExtendedHeader
+   @booleans_size=2,
+   @header_size=10,
+   @last_strings_table_offset=750,
+   @numbers_size=0,
+   @strings_size=62,
+   @strings_table_size=126,
+   @sym_offset_size=64,
+   @total_size=262>,
+
+ @booleans=
+  {"auto_left_margin" => false,
+  # ...
+  "backspaces_with_bs" => true},
+ @numbers=
+  {"columns" => 80,
+  # ...
+  "max_pairs" => 64},
+ @strings=
+  {"back_tab" => "\e[Z",
+  # ...
+  "memory_unlock" => "\em"}>
+
+ @extended_booleans=
+  {"AX" => true,
+  # ...
+  "XT" => true},
+ @extended_numbers=
+  {},
+ @extended_strings=
+  {"Cr" => "\e]112\a",
+  # ...
+  "kc2" => ""}
+>
+
+```
 
 ## API documentation
 

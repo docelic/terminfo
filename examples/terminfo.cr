@@ -19,3 +19,5 @@ p my2.extended_header
 p "Boolean auto_left_margin = %s" % my.booleans["auto_left_margin"]
 p "Number columns = %s" % my.numbers["columns"]
 p "String back_tab = %s" % my.strings["back_tab"]
+
+pp my
