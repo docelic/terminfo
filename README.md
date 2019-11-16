@@ -36,15 +36,15 @@ require "../src/terminfo"
 
 # With own class
 class MyClass
-  include ::Terminfo
+  include Terminfo
 end
-my = MyClass.new "/lib/terminfo/x/xterm"
+my = MyClass.new auto: true
 
 # With built-in class
-my = ::Terminfo::Data.new "/lib/terminfo/x/xterm"
+my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
 
 # Using internal 'xterm' definition
-my2 = ::Terminfo::Data.new ::Terminfo.get_internal "xterm"
+my2 = Terminfo::Data.new builtin: "xterm"
 
 p my.header
 p my2.extended_header
