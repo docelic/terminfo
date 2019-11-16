@@ -120,11 +120,12 @@ data = Terminfo::Data.new autodetect: true
 ```
 
 If environment variable `ENV["TERMINFO"]` exists, it will be used as the terminfo
-file path instead of performing autodetection, and the term name will be read
-from the file.
+file path, and the term name will be read from the file.
 
-Otherwise, autodetection of the terminal will be performed and the equivalent
-terminfo file will be searched in the above documented directories.
+Otherwise, term value will be read from ENV["TERM"] and the terminfo file will
+be searched in the above documented directories.
+
+If TERMINFO and TERM are unsed, a built-in default of "xterm" is used.
 
 ## Terminfo data
 
