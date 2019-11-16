@@ -38,7 +38,7 @@ require "../src/terminfo"
 class MyClass
   include Terminfo
 end
-my = MyClass.new auto: true
+my = MyClass.new autodetect: true
 
 # With built-in class
 my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
@@ -75,7 +75,7 @@ data = Terminfo::Data.new term: "xterm"
 The default directory search order from first to last:
 
 ```crystal
-ENV["TERMINFO_DIRS"]/     # (List of directory paths split by ":")
+ENV["TERMINFO_DIRS"]/     # (List of directories split by ":")
 ENV["HOME"]/.terminfo/
 /usr/share/terminfo/
 /usr/share/lib/terminfo/
@@ -87,12 +87,13 @@ ENV["HOME"]/.terminfo/
 /lib/terminfo/
 ```
 
-Directory search order can be changed by modifying `Terminfo.paths`.
+Directory search order can be changed by modifying `Terminfo.directories`.
 
-A file is searched in each directory using two attempts:
+A file is searched in each directory using the following attempts:
 
 ```crystal
 ./file
+./f/file
 ./f/fi/file
 ```
 
@@ -115,7 +116,7 @@ xterm-256color
 For autodetection, request it:
 
 ```crystal
-data = Terminfo::Data.new auto: true
+data = Terminfo::Data.new autodetect: true
 ```
 
 If environment variable `ENV["TERMINFO"]` exists, it will be used as the terminfo

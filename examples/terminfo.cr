@@ -2,22 +2,21 @@ require "../src/terminfo"
 
 # With own class
 class MyClass
-  include ::Terminfo
+  include Terminfo
 end
-my = MyClass.new "/lib/terminfo/x/xterm"
+my = MyClass.new autodetect: true
 
 # With built-in class
-my = ::Terminfo::Data.new "/lib/terminfo/x/xterm"
+my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
 
 # Using internal 'xterm' definition
-my2 = ::Terminfo::Data.new ::Terminfo.get_internal "xterm"
+my2 = Terminfo::Data.new builtin: "xterm"
 
 p my.header
 p my2.extended_header
 
-# Print out a couple raw values
-p "Boolean auto_left_margin = %s" % my.booleans["auto_left_margin"]
-p "Number columns = %s" % my.numbers["columns"]
-p "String back_tab = %s" % my.strings["back_tab"]
-
-pp my
+# Print out a couple raw values. Use p() which inspects variables.
+# Using puts() would output any escape sequences to the terminal.
+p my.booleans["auto_left_margin"] # => false
+p my.numbers["columns"]           # => 80
+p my.strings["back_tab"]          # => \e[Z

@@ -8,12 +8,12 @@ module Terminfo
   extend BakedFileSystem
   bake_folder "../filesystem/"
 
-  class_property paths = [] of String
+  class_property directories = [] of String
 
-  (i=ENV["TERMINFO"]?).try      do |i| @@paths.push i end
-  (i=ENV["TERMINFO_DIRS"]?).try do |i| @@paths += i.split ':' end
-  (i=ENV["HOME"]?).try          do |i| @@paths.push i + "/.terminfo" end
-  @@paths.push \
+  (i=ENV["TERMINFO"]?).try      do |i| @@directories.push i end
+  (i=ENV["TERMINFO_DIRS"]?).try do |i| @@directories += i.split ':' end
+  (i=ENV["HOME"]?).try          do |i| @@directories.push i + "/.terminfo" end
+  @@directories.push \
     "/usr/share/terminfo",
     "/usr/share/lib/terminfo",
     "/usr/lib/terminfo",
@@ -551,15 +551,50 @@ module Terminfo
   property extended_numbers : Hash(String,Int16)
   property extended_strings : Hash(String,String)
 
-
   # TODO turn this into one that searches system
-  # paths, then falls back to internal version.
+  # directories, then falls back to internal version.
   # Still open question: how to differentiate between a
   # filesystem path, and relative path, and just terminfo
   # name, and internal name?
-  def initialize(path : String)
-  p :in
+  def initialize(*, path : String)
     File.open(path) do |io| initialize path, io end
+  end
+  def initialize(*, builtin : String)
+    initialize ::Terminfo.get_internal builtin
+  end
+  def initialize(*, term : String)
+    filename = nil
+    ::Terminfo.directories.each do |dir|
+      f1 = File.join dir, term
+      f2 = File.join dir, term[0..0], term[0..1], term
+      filename = nil
+      if File.readable? f1
+        filename = f1
+        break
+      elsif File.readable? f2
+        filename = f2
+        break
+      end
+      if filename
+        initialize path: filename
+      else
+        f = ::Terminfo.get_internal? term
+        if f
+          initialize file: f
+        else
+          raise Exception.new "Can't find system or builtin terminfo file for '#{term}'"
+        end
+      end
+    end
+  end
+  def initialize(autodetect : Bool)
+    if filename = ENV["TERMINFO"]?
+      initialize path: filename
+    elsif term = ENV["TERM"]?
+      initialize term: term
+    else
+      initialize builtin: "{% if flag?(:windows) %}windows-ansi{% else %}xterm{% end %}"
+    end
   end
 
   def initialize(file : BakedFileSystem::BakedFile)
