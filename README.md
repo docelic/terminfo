@@ -181,7 +181,9 @@ data = Terminfo::Data.new term: "xterm"
   # ...
   "XT" => true},
  @extended_numbers=
-  {},
+  {"some_name" => 0,
+  # ...
+  },
  @extended_strings=
   {"Cr" => "\e]112\a",
   # ...
