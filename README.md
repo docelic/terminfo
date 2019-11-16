@@ -13,6 +13,8 @@ It supports:
 1. Providing raw access to parsed terminfo data
 1. Using internally stored terminfo data for most common terminals
 
+It is implemented in Crystal and does not depend on ncurses or any other external parsing library.
+
 ## Installation
 
 Add the dependency to `shard.yml`:
@@ -26,7 +28,7 @@ dependencies:
 
 ## Usage in a nutshell
 
-Here is a basic example that parses a terminfo file.
+Here is a basic example that parses a terminfo file, prints parsed headers, and accesses raw data.
 
 ```crystal
 require "../src/terminfo"
@@ -45,6 +47,11 @@ my2 = ::Terminfo::Data.new ::Terminfo.get_internal "xterm"
 
 p my.header
 p my2.extended_header
+
+# Print out a couple raw values
+p "Boolean auto_left_margin = %s" % my.booleans["auto_left_margin"]
+p "Number columns = %s" % my.numbers["columns"]
+p "String back_tab = %s" % my.strings["back_tab"]
 ```
 
 ## API documentation
