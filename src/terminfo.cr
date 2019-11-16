@@ -749,7 +749,7 @@ module Terminfo
 
     # Strings section
     # TODO combine these 2 blocks into one
-    endpos = io.pos + header.sym_offset_size * 2 + header.strings_size * 2
+    endpos = io.pos + header.symbol_offsets_size * 2 + header.strings_size * 2
     _strings = [] of Int16
     header.strings_size.times do |i|
       offset = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
@@ -764,7 +764,7 @@ module Terminfo
     # Both are alternative ways and work:
     #p io.size - header.lastStrTableOffset
     #p io.pos + header.symOffsetCount*2
-    io.seek (io.pos + header.sym_offset_size*2), ::IO::Seek::Set
+    io.seek (io.pos + header.symbol_offsets_size*2), ::IO::Seek::Set
     # Remember the pos we are at after having parsed the offsets table
     pos = io.pos
     high = 0 # Index at which string table is done
@@ -868,29 +868,29 @@ module Terminfo
     property strings_table_size : Int16
     property last_strings_table_offset : Int16
     property total_size : Int16
-    property sym_offset_size : Int16
+    property symbol_offsets_size : Int16
 
     def initialize(io : IO)
       @header_size           = 10
-      @booleans_size            = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
+      @booleans_size         = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
       @numbers_size          = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
       @strings_size          = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
       @strings_table_size    = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
       @last_strings_table_offset = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      @sym_offset_size       = @strings_table_size - @strings_size
+      @symbol_offsets_size   = @strings_table_size - @strings_size
       @total_size            = @header_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
     end
 
     def to_h
       {
-        :header_size        => @header_size,
-        :booleans_size      => @booleans_size,
-        :numbers_size       => @numbers_size,
-        :strings_size       => @strings_size,
-        :strings_table_size => @strings_table_size,
+        :header_size         => @header_size,
+        :booleans_size       => @booleans_size,
+        :numbers_size        => @numbers_size,
+        :strings_size        => @strings_size,
+        :strings_table_size  => @strings_table_size,
         :last_strings_table_offset => @last_strings_table_offset,
-        :sym_offset_size    => @sym_offset_size,
-        :total_size         => @total_size,
+        :symbol_offsets_size => @symbol_offsets_size,
+        :total_size          => @total_size,
       }
     end
   end

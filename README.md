@@ -60,7 +60,7 @@ p my.strings["back_tab"]          # => \e[Z
 
 Terminfo can read terminfo data from files on disk as well as from internal (compiled-in) storage.
 
-For filesystem access, specify terminfo files as absolute or relative paths:
+For individual terminfo file, specify absolute or relative path:
 
 ```
 data = Terminfo::Data.new path: "/path/to/t/te/terminfo_file"
@@ -112,7 +112,7 @@ xterm
 xterm-256color
 ```
 
-For autodetection, request it with:
+For autodetection, request it:
 
 ```
 data = Terminfo::Data.new auto: true
@@ -128,7 +128,7 @@ terminfo file will be searched in the above documented directories.
 ## Terminfo data
 
 Once you have instantiated Terminfo via your own class or built-in `Terminfo::Data`,
-the following properties and data structurewill be available:
+the following parsed properties and data structure will be available:
 
 ```
 data = Terminfo::Data.new term: "xterm"
