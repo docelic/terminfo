@@ -63,7 +63,7 @@ Terminfo can read terminfo data from files on disk as well as from internal (com
 For specific terminfo files, specify absolute or relative path:
 
 ```crystal
-data = Terminfo::Data.new path: "/path/to/t/te/terminfo_file"
+data = Terminfo::Data.new path: "/path/to/t/terminfo_file"
 ```
 
 For lookup in default terminfo directories, specify term name:
