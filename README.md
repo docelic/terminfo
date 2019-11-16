@@ -32,7 +32,7 @@ dependencies:
 Here is a basic example that parses a terminfo file, prints parsed headers, and accesses raw data.
 
 ```crystal
-require "../src/terminfo"
+require "terminfo"
 
 # With own class
 class MyClass
