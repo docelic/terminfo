@@ -12,4 +12,7 @@ describe Terminfo do
 
   data = Terminfo::Data.new autodetect: true
   data.name.should eq "xterm"
+
+  data = Terminfo::Data.new
+  data.name.should eq "xterm"
 end
