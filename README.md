@@ -122,8 +122,8 @@ If environment variable `ENV["TERMINFO"]` exists, it will be used as terminfo
 file path instead of performing autodetection, and the term name will be read
 from the file.
 
-Otherwise, autodetection will be performed and the terminfo file will be
-searched in the above documented directories.
+Otherwise, autodetection of the terminal will be performed and the equivalent
+terminfo file will be searched in the above documented directories.
 
 ## API documentation
 
@@ -145,4 +145,4 @@ Also, see examples in the directory `examples/`.
 
 List of interesting or similar projects in no particular order:
 
-- https://github.com/crystallabs/crysterm - Crysterm is a console/terminal toolkit for Crystal
+- https://github.com/crystallabs/crysterm - Console/term toolkit for Crystal
