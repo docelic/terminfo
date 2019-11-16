@@ -1,5 +1,7 @@
 require "baked_file_system"
 
+require "./alias"
+
 module Terminfo
   VERSION = "0.4.0"
 
@@ -814,7 +816,6 @@ module Terminfo
     raise Exception.new("Not at end of file? Currently at #{io.pos}, should be at #{io.size}?") unless io.pos == io.size
     { header, booleans, numbers, strings }
   end
-
 
   class Header
     property data_size : Int16

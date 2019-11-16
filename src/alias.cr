@@ -1,11 +1,10 @@
-module Crysterm
-  # Mappings/aliases between terminfo and termcap names.
-  # This file is only used from tput.cr to initialize tput's own values.
+module Terminfo
+  # Mappings between symbolic, terminfo, and termcap names.
   # Taken from terminfo(5) man page.
   module Alias
 
     # These are the boolean capabilities
-    Bools = {
+    Booleans = {
       #         Variable             Tinfo     TCap      Description
       #         Booleans             name      Code
       "auto_left_margin" =>          {"bw",    "bw"}, #  cub1 wraps from col‐ umn 0 to last column

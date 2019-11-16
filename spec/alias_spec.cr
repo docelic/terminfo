@@ -1,16 +1,16 @@
 require "./spec_helper"
 
 describe "Alias" do
-  it "contains bools, numbers, and strings" do
-    ::Crysterm::Alias::Bools.class.should   eq Hash(String, Tuple(String, String))
-    ::Crysterm::Alias::Numbers.class.should eq Hash(String, Tuple(String, String))
-    ::Crysterm::Alias::Strings.class.should eq Hash(String, Tuple(String, String))
+  it "contains booleans, numbers, and strings" do
+    ::Terminfo::Alias::Booleans.class.should   eq Hash(String, Tuple(String, String))
+    ::Terminfo::Alias::Numbers.class.should eq Hash(String, Tuple(String, String))
+    ::Terminfo::Alias::Strings.class.should eq Hash(String, Tuple(String, String))
   end
 
-  it "has values in bools, numbers, and strings" do
-    ::Crysterm::Alias::Bools["move_standout_mode"].should eq Tuple.new("msgr",  "ms")
-    ::Crysterm::Alias::Numbers["lines_of_memory"].should  eq Tuple.new("lm",    "lm")
-    ::Crysterm::Alias::Strings["set_a_background"].should eq Tuple.new("setab",  "AB")
+  it "has values in booleans, numbers, and strings" do
+    ::Terminfo::Alias::Booleans["move_standout_mode"].should eq Tuple.new("msgr",  "ms")
+    ::Terminfo::Alias::Numbers["lines_of_memory"].should  eq Tuple.new("lm",    "lm")
+    ::Terminfo::Alias::Strings["set_a_background"].should eq Tuple.new("setab",  "AB")
   end
 end
 
