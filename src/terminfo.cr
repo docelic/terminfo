@@ -584,6 +584,10 @@ module Terminfo
   # List of string capabilities from extended data
   property extended_strings : Hash(String,String)
 
+  # Create Terminfo object and autodetect term name
+  def initialize
+    initialize autodetect: true
+  end
   # Create Terminfo object and parse specified terminfo data
   def initialize(*, path : String)
     File.open(path) do |io| initialize path, io end

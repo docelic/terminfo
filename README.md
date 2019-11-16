@@ -60,7 +60,7 @@ p my.strings["back_tab"]          # => \e[Z
 
 Terminfo can read terminfo data from files on disk as well as from internal (compiled-in) storage.
 
-For individual terminfo file, specify absolute or relative path:
+For specific terminfo files, specify absolute or relative path:
 
 ```crystal
 data = Terminfo::Data.new path: "/path/to/t/te/terminfo_file"
@@ -113,19 +113,21 @@ xterm
 xterm-256color
 ```
 
-For autodetection, request it:
+For autodetection, request it or call `initialize` with no arguments:
 
 ```crystal
 data = Terminfo::Data.new autodetect: true
+
+data = Terminfo::Data.new
 ```
 
-If environment variable `ENV["TERMINFO"]` exists, it will be used as the terminfo
-file path, and the term name will be read from the file.
+If environment variable `ENV["TERMINFO"]` is set, term definition will
+be read from the specified file.
 
-Otherwise, term value will be read from ENV["TERM"] and the terminfo file will
-be searched in the above documented directories.
+Otherwise, term name will be read from `ENV["TERM"]` and the corresponding
+terminfo file will be searched in the above documented directories.
 
-If TERMINFO and TERM are unsed, a built-in default of "xterm" is used.
+If `TERMINFO` and `TERM` are unset, a built-in default of "xterm" will be used.
 
 ## Terminfo data
 
