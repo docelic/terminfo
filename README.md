@@ -62,19 +62,19 @@ Terminfo can read terminfo data from files on disk as well as from internal (com
 
 For individual terminfo file, specify absolute or relative path:
 
-```
+```crystal
 data = Terminfo::Data.new path: "/path/to/t/te/terminfo_file"
 ```
 
 For lookup in default terminfo directories, specify term name:
 
-```
+```crystal
 data = Terminfo::Data.new term: "xterm"
 ```
 
 The default directory search order from first to last:
 
-```
+```crystal
 ENV["TERMINFO_DIRS"]/     # (List of directory paths split by ":")
 ENV["HOME"]/.terminfo/
 /usr/share/terminfo/
@@ -91,21 +91,21 @@ Directory search order can be changed by modifying `Terminfo.paths`.
 
 A file is searched in each directory using two attempts:
 
-```
+```crystal
 ./file
 ./f/fi/file
 ```
 
 For lookup in the module's built-in storage, specify built-in name:
 
-```
+```crystal
 data = Terminfo::Data.new builtin: "xterm"
 ```
 
 Built-in terminfo definitions can be changed by modifying the contents of the
 directory `filesystem/`. Currently available built-in terminfo files are:
 
-```
+```crystal
 linux
 windows-ansi
 xterm
@@ -114,7 +114,7 @@ xterm-256color
 
 For autodetection, request it:
 
-```
+```crystal
 data = Terminfo::Data.new auto: true
 ```
 
@@ -130,7 +130,7 @@ terminfo file will be searched in the above documented directories.
 Once you have instantiated Terminfo via your own class or built-in `Terminfo::Data`,
 the following parsed properties and data structure will be available:
 
-```
+```crystal
 data = Terminfo::Data.new term: "xterm"
 
 # pp data
@@ -187,7 +187,6 @@ data = Terminfo::Data.new term: "xterm"
   # ...
   "kc2" => ""}
 >
-
 ```
 
 ## API documentation
