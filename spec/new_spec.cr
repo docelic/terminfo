@@ -10,7 +10,7 @@ describe Terminfo do
   data = Terminfo::Data.new builtin: "windows-ansi"
   data.name.should eq "ansi"
 
-  data = Terminfo::Data.new autodetect: true
+  data = Terminfo::Data.new
   data.name.should eq "xterm"
 
   data = Terminfo::Data.new

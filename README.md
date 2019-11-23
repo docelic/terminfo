@@ -38,7 +38,7 @@ require "terminfo"
 class MyClass
   include Terminfo
 end
-my = MyClass.new autodetect: true
+my = MyClass.new
 
 # With built-in class
 my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
@@ -113,11 +113,9 @@ xterm
 xterm-256color
 ```
 
-For autodetection, request it or call `initialize` with no arguments:
+For autodetection, call `initialize` with no arguments:
 
 ```crystal
-data = Terminfo::Data.new autodetect: true
-
 data = Terminfo::Data.new
 ```
 

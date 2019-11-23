@@ -4,7 +4,7 @@ require "../src/terminfo"
 class MyClass
   include Terminfo
 end
-my = MyClass.new autodetect: true
+my = MyClass.new
 
 # With built-in class
 my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
