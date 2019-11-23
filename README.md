@@ -211,7 +211,7 @@ Also, see examples in the directory `examples/`.
 
 * All the fine folks on FreeNode IRC channel #crystal-lang and on Crystal's Gitter channel https://gitter.im/crystal-lang/crystal
 
-## Related projects
+## Other projects
 
 List of interesting or similar projects in no particular order:
 

@@ -11,6 +11,11 @@ module Terminfo
   # List of default directories to search for terminfo files
   class_property directories = [] of String
 
+  # Terminfo extended parsing flag. If this flag is true and
+  # extended sections exist in terminfo files, they will be
+  # parsed.
+  class_property? extended = true
+
   (i=ENV["TERMINFO"]?).try      do |i| @@directories.push i end
   (i=ENV["TERMINFO_DIRS"]?).try do |i| @@directories += i.split ':' end
   (i=ENV["HOME"]?).try          do |i| @@directories.push i + "/.terminfo" end
@@ -584,11 +589,7 @@ module Terminfo
   # List of string capabilities from extended data
   property extended_strings : Hash(String,String)
 
-  # Create Terminfo object and autodetect term name
-  def initialize
-    initialize autodetect: true
-  end
-  # Create Terminfo object and parse specified terminfo data
+  # Create Terminfo object
   def initialize(*, path : String)
     File.open(path) do |io| initialize path, io end
   end
@@ -623,7 +624,7 @@ module Terminfo
     end
   end
   # :ditto:
-  def initialize(autodetect : Bool)
+  def initialize
     if filename = ENV["TERMINFO"]?
       initialize path: filename
     elsif term = ENV["TERM"]?
@@ -643,7 +644,7 @@ module Terminfo
   end
 
   # :ditto:
-  def initialize(file, io : IO, extended = true)
+  def initialize(file, io : IO, extended = ::Terminfo.extended?)
 
     # The format has been chosen so that it will be the same on all hardware.
     # An 8 or more bit byte is assumed, but no assumptions about byte
@@ -700,7 +701,7 @@ module Terminfo
     raise "Names must be nul-terminated" unless names_string[-1].ord==0
 
     names= names_string[..-2].split '|'
-    @name = names.shift || ""
+    @name = (names.shift || "").downcase
     @description = names.pop || ""
     @names = names
 
@@ -776,6 +777,7 @@ module Terminfo
     end
   end
 
+  # :nodoc:
   def parse_extended(io)
 
     # The ncurses libraries and applications support extended terminfo

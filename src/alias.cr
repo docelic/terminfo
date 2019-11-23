@@ -5,8 +5,8 @@ module Terminfo
 
     # Boolean terminfo capabilities
     Booleans = {
-      #         Variable             Tinfo     TCap      Description
-      #         Booleans             name      Code
+      #         Variable             Tinfo     TCap  More       Description
+      #         Booleans             name      Code  Aliases?
       "auto_left_margin" =>          {"bw",    "bw"}, #  cub1 wraps from col‐ umn 0 to last column
       "auto_right_margin" =>         {"am",    "am"}, #  terminal has auto‐ matic margins
       "back_color_erase" =>          {"bce",   "ut"}, #  screen erased with background color
@@ -15,7 +15,7 @@ module Terminfo
       "col_addr_glitch" =>           {"xhpa",  "YA"}, #  only positive motion for hpa/mhpa caps
       "cpi_changes_res" =>           {"cpix",  "YF"}, #  changing character pitch changes reso‐ lution
       "cr_cancels_micro_mode" =>     {"crxm",  "YB"}, #  using cr turns off micro mode
-      "dest_tabs_magic_smso" =>      {"xt",    "xt"}, #  tabs destructive, magic so char (t1061)
+      "dest_tabs_magic_smso" =>      {"xt",    "xt", "teleray_glitch"}, #  tabs destructive, magic so char (t1061)
       "eat_newline_glitch" =>        {"xenl",  "xn"}, #  newline ignored after 80 cols (con‐ cept)
       "erase_overstrike" =>          {"eo",    "eo"}, #  can erase over‐ strikes with a blank
       "generic_type" =>              {"gn",    "gn"}, #  generic line type
@@ -32,7 +32,7 @@ module Terminfo
       "move_insert_mode" =>          {"mir",   "mi"}, #  safe to move while in insert mode
       "move_standout_mode" =>        {"msgr",  "ms"}, #  safe to move while in standout mode
       "needs_xon_xoff" =>            {"nxon",  "nx"}, #  padding will not work, xon/xoff required
-      "no_esc_ctlc" =>               {"xsb",   "xb"}, #  beehive (f1=escape, f2=ctrl C)
+      "no_esc_ctlc" =>               {"xsb",   "xb", "beehive_glitch"}, #  beehive (f1=escape, f2=ctrl C)
       "no_pad_char" =>               {"npc",   "NP"}, #  pad character does not exist
       "non_dest_scroll_region" =>    {"ndscr", "ND"}, #  scrolling region is non-destructive
       "non_rev_rmcup" =>             {"nrrmc", "NR"}, #  smcup does not reverse rmcup
@@ -81,7 +81,7 @@ module Terminfo
       "dot_vert_spacing" =>          {"spinv", "Yb"}, #  spacing of pins ver‐ tically in pins per inch
       "max_micro_address" =>         {"maddr", "Yd"}, #  maximum value in micro_..._address
       "max_micro_jump" =>            {"mjump", "Ye"}, #  maximum value in parm_..._micro
-      "micro_col_size" =>            {"mcs",   "Yf"}, #  character step size when in micro mode
+      "micro_col_size" =>            {"mcs",   "Yf", "micro_char_size"}, #  character step size when in micro mode
       "micro_line_size" =>           {"mls",   "Yg"}, #  line step size when in micro mode
       "number_of_pins" =>            {"npins", "Yh"}, #  numbers of pins in print-head
       "output_res_char" =>           {"orc",   "Yi"}, #  horizontal resolu‐ tion in units per line
@@ -115,7 +115,7 @@ module Terminfo
       "column_address" =>            {"hpa",   "ch"}, #  horizontal position #1, absolute (P)
       "command_character" =>         {"cmdch", "CC"}, #  terminal settable cmd character in prototype !?
       "create_window" =>             {"cwin",  "CW"}, #  define a window #1 from #2,#3 to #4,#5
-      "cursor_address" =>            {"cup",   "cm"}, #  move to row #1 col‐ umns #2
+      "cursor_address" =>            {"cup",   "cm", "cursor_position", "cursor_pos"}, #  move to row #1 col‐ umns #2
       "cursor_down" =>               {"cud1",  "do"}, #  down one line
       "cursor_home" =>               {"home",  "ho"}, #  home cursor (if no cup)
       "cursor_invisible" =>          {"civis", "vi"}, #  make cursor invisi‐ ble
