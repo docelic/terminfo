@@ -3,7 +3,7 @@ require "baked_file_system"
 require "./alias"
 
 module Terminfo
-  VERSION = "0.6.0"
+  VERSION = "0.7.0"
 
   extend BakedFileSystem
   bake_folder "../filesystem/"
@@ -590,15 +590,15 @@ module Terminfo
   property extended_strings : Hash(String,String)
 
   # Create Terminfo object
-  def initialize(*, path : String)
-    File.open(path) do |io| initialize path, io end
+  def initialize(*, path : String, extended = true)
+    File.open(path) do |io| initialize path, io, extended: extended end
   end
   # :ditto:
-  def initialize(*, builtin : String)
-    initialize ::Terminfo.get_internal builtin
+  def initialize(*, builtin : String, extended = true)
+    initialize ::Terminfo.get_internal(builtin), extended: extended
   end
   # :ditto:
-  def initialize(*, term : String)
+  def initialize(*, term : String, extended = true)
     filename = nil
     ::Terminfo.directories.each do |dir|
       f1 = File.join dir, term
@@ -612,11 +612,11 @@ module Terminfo
         break
       end
       if filename
-        initialize path: filename
+        initialize path: filename, extended: extended
       else
         f = ::Terminfo.get_internal? term
         if f
-          initialize file: f
+          initialize file: f, extended: extended
         else
           raise Exception.new "Can't find system or builtin terminfo file for '#{term}'"
         end
@@ -624,23 +624,23 @@ module Terminfo
     end
   end
   # :ditto:
-  def initialize
+  def initialize(extended = true)
     if filename = ENV["TERMINFO"]?
-      initialize path: filename
+      initialize path: filename, extended: extended
     elsif term = ENV["TERM"]?
-      initialize term: term
+      initialize term: term, extended: extended
     else
-      initialize builtin: "{% if flag?(:windows) %}windows-ansi{% else %}xterm{% end %}"
+      initialize builtin: "{% if flag?(:windows) %}windows-ansi{% else %}xterm{% end %}", extended: extended
     end
   end
 
   # :ditto:
-  def initialize(file : BakedFileSystem::BakedFile)
-    initialize file, ::IO::Memory.new file.read
+  def initialize(file : BakedFileSystem::BakedFile, extended = true)
+    initialize file, ::IO::Memory.new(file.read), extended: extended
   end
   # :ditto:
-  def initialize(file : File)
-    initialize file
+  def initialize(file : File, extended = true)
+    initialize file, extended: extended
   end
 
   # :ditto:
