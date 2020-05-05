@@ -607,8 +607,7 @@ module Terminfo
         File.join(dir, term[0..0], term[0..1], term),         # /path/to/terminfo/s/sc/screen
         File.join(dir, sprintf("%x", term[0..0].bytes), term) # /path/to/terminfo/73/screen, see https://invisible-island.net/ncurses/NEWS.html#t20071117
       ]
-      filename = locations.select{|loc| File.readable? loc}.pop?
-      break if filename
+      break if filename = locations.find{|loc| File.readable? loc}
     end
 
     if filename
