@@ -600,26 +600,24 @@ module Terminfo
   # :ditto:
   def initialize(*, term : String, extended = true)
     filename = nil
+    # scan all possible locations
     ::Terminfo.directories.each do |dir|
-      f1 = File.join dir, term
-      f2 = File.join dir, term[0..0], term[0..1], term
-      filename = nil
-      if File.readable? f1
-        filename = f1
-        break
-      elsif File.readable? f2
-        filename = f2
-        break
-      end
-      if filename
-        initialize path: filename, extended: extended
+      locations = [
+        File.join(dir, term),                                 # /path/to/terminfo/screen
+        File.join(dir, term[0..0], term[0..1], term),         # /path/to/terminfo/s/sc/screen
+        File.join(dir, sprintf("%x", term[0..0].bytes), term) # /path/to/terminfo/73/screen, see https://invisible-island.net/ncurses/NEWS.html#t20071117
+      ]
+      break if filename = locations.find{|loc| File.readable? loc}
+    end
+
+    if filename
+      initialize path: filename, extended: extended
+    else
+      f = ::Terminfo.get_internal? term
+      if f
+        initialize file: f, extended: extended
       else
-        f = ::Terminfo.get_internal? term
-        if f
-          initialize file: f, extended: extended
-        else
-          raise Exception.new "Can't find system or builtin terminfo file for '#{term}'"
-        end
+        raise Exception.new "Can't find system or builtin terminfo file for '#{term}'"
       end
     end
   end
