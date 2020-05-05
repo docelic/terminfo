@@ -38,7 +38,7 @@ require "terminfo"
 class MyClass
   include Terminfo
 end
-my = MyClass.new
+my = MyClass.new # (No arguments will trigger term autodetection)
 
 # With built-in class
 my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
@@ -49,8 +49,8 @@ my2 = Terminfo::Data.new builtin: "xterm"
 p my.header
 p my2.extended_header
 
-# Print out a couple raw values. Use p() which inspects variables.
-# Using puts() would output any escape sequences to the terminal.
+# Print out a couple raw values. Use p() which inspects variables
+# instead of puts() which would output escape sequences to the terminal.
 p my.booleans["auto_left_margin"] # => false
 p my.numbers["columns"]           # => 80
 p my.strings["back_tab"]          # => \e[Z
@@ -95,6 +95,7 @@ A file is searched in each directory using the following attempts:
 ./file
 ./f/file
 ./f/fi/file
+./66/file # 66 == hex("file"[0].bytes)
 ```
 
 For lookup in the module's built-in storage, specify built-in name:
@@ -211,6 +212,7 @@ Also, see examples in the directory `examples/`.
 
 ## Other projects
 
-List of interesting or similar projects in no particular order:
+List of interesting or related projects in no particular order:
 
-- https://github.com/crystallabs/crysterm - Console/term toolkit for Crystal
+- https://github.com/crystallabs/tput - Low-level component for building term/console applications in Crystal
+- https://github.com/crystallabs/term_colors - Term/console color manipulation library for Crystal
