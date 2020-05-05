@@ -46,8 +46,8 @@ my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
 # Using internal 'xterm' definition
 my2 = Terminfo::Data.new builtin: "xterm"
 
-p my.header
-p my2.extended_header
+p my.header.to_h
+p my2.extended_header.to_h
 
 # Print out a couple raw values. Use p() which inspects variables
 # instead of puts() which would output escape sequences to the terminal.
