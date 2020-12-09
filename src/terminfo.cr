@@ -3,7 +3,7 @@ require "baked_file_system"
 require "./alias"
 
 module Terminfo
-  VERSION = "0.8.0"
+  VERSION = "0.8.1"
 
   extend BakedFileSystem
   bake_folder "../filesystem/"

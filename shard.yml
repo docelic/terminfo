@@ -1,5 +1,5 @@
 name: terminfo
-version: 0.8.0
+version: 0.8.1
 
 authors:
   - Davor Ocelic <docelic@crystallabs.io>
@@ -11,4 +11,4 @@ license: MIT
 dependencies:
   baked_file_system:
     github: schovi/baked_file_system
-    version: 0.9.8
+    branch: master

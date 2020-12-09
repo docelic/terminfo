@@ -14,7 +14,7 @@ It supports:
 1. Providing raw access to parsed terminfo data
 1. Using internally stored terminfo data for most common terminals
 
-It is implemented natively and does not depend on ncurses or other external library.
+*It is implemented natively and does not depend on ncurses or other external library.*
 
 ## Installation
 
@@ -24,7 +24,7 @@ Add the dependency to `shard.yml`:
 dependencies:
   terminfo:
     github: crystallabs/terminfo
-    version: 0.8.0
+    version: 0.8.1
 ```
 
 ## Usage in a nutshell
@@ -34,20 +34,20 @@ Here is a basic example that parses a terminfo file, prints parsed headers, and 
 ```crystal
 require "terminfo"
 
-# With own class
+# Using a module/mixin
 class MyClass
   include Terminfo
 end
-my = MyClass.new # (No arguments will trigger term autodetection)
+my = MyClass.new # (No arguments provided will trigger term autodetection)
 
-# With built-in class
+# Using a class
 my = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
 
 # Using internal 'xterm' definition
 my2 = Terminfo::Data.new builtin: "xterm"
 
 p my.header.to_h
-p my2.extended_header.to_h
+p my.extended_header.to_h
 
 # Print out a couple raw values. Use p() which inspects variables
 # instead of puts() which would output escape sequences to the terminal.
@@ -59,20 +59,22 @@ p my.strings["back_tab"]          # => \e[Z
 ## Terminfo initialization
 
 Terminfo can read terminfo data from files on disk as well as from internal (compiled-in) storage.
+There are a total of 4 ways to initialize:
 
-For specific terminfo files, specify absolute or relative path:
+
+(1) For specific terminfo files, specify absolute or relative path:
 
 ```crystal
 data = Terminfo::Data.new path: "/path/to/t/terminfo_file"
 ```
 
-For lookup in default terminfo directories, specify term name:
+(2) For lookup in default terminfo directories, specify term name:
 
 ```crystal
 data = Terminfo::Data.new term: "xterm"
 ```
 
-The default directory search order from first to last:
+The default directory search order, from first to last:
 
 ```crystal
 ENV["TERMINFO_DIRS"]/     # (List of directories split by ":")
@@ -98,7 +100,7 @@ A file is searched in each directory using the following attempts:
 ./66/file # 66 == hex("file"[0].bytes)
 ```
 
-For lookup in the module's built-in storage, specify built-in name:
+(3) For lookup in the module's built-in storage, specify built-in name:
 
 ```crystal
 data = Terminfo::Data.new builtin: "xterm"
@@ -114,7 +116,7 @@ xterm
 xterm-256color
 ```
 
-For autodetection, call `initialize` with no arguments:
+(4) For autodetection, call `initialize` with no arguments:
 
 ```crystal
 data = Terminfo::Data.new
@@ -130,13 +132,13 @@ If `TERMINFO` and `TERM` are unset, a built-in default of "xterm" will be used.
 
 ## Terminfo data
 
-Once you have instantiated Terminfo via your own class or built-in `Terminfo::Data`,
-the following parsed properties and data structure will be available:
+Once you have instantiated Terminfo in one of the ways shown above,
+the following parsed properties and data structures will be available:
 
 ```crystal
 data = Terminfo::Data.new term: "xterm"
 
-# pp data
+pp data
 
 #<Terminfo::Data
  @name="xterm",
@@ -170,10 +172,12 @@ data = Terminfo::Data.new term: "xterm"
   {"auto_left_margin" => false,
   # ...
   "backspaces_with_bs" => true},
+
  @numbers=
   {"columns" => 80,
   # ...
   "max_pairs" => 64},
+
  @strings=
   {"back_tab" => "\e[Z",
   # ...
@@ -183,15 +187,16 @@ data = Terminfo::Data.new term: "xterm"
   {"AX" => true,
   # ...
   "XT" => true},
+
  @extended_numbers=
   {"some_name" => 0,
   # ...
   },
+
  @extended_strings=
   {"Cr" => "\e]112\a",
   # ...
   "kc2" => ""}
->
 ```
 
 ## API documentation
@@ -216,3 +221,5 @@ List of interesting or related projects in no particular order:
 
 - https://github.com/crystallabs/tput - Low-level component for building term/console applications in Crystal
 - https://github.com/crystallabs/term_colors - Term/console color manipulation library for Crystal
+- https://github.com/bew/unibilium.cr - Unibilium bindings for crystal - A terminfo parsing library
+- https://github.com/bew/terminfo.cr - A Crystal library to parse terminfo database
