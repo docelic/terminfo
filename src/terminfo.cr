@@ -915,6 +915,11 @@ module Terminfo
       @data_size      = io.size.to_i16
       @header_size    = 12
       @magic_number   = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[1] << 8) | io[0]
+
+      if @magic_number != 0x11A
+        raise Exception.new "Bad magic number; expecting: 0x11A, got: #{@magic_number}"
+      end
+
       @names_size     = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[3] << 8) | io[2]
       @booleans_size     = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[5] << 8) | io[4]
       @numbers_size   = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[7] << 8) | io[6]
