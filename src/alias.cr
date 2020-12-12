@@ -43,7 +43,15 @@ module Terminfo
       "status_line_esc_ok" =>        ["eslok", "es"], #  escape can be used on the status line
       "tilde_glitch" =>              ["hz",    "hz"], #  cannot print ~'s (hazeltine)
       "transparent_underline" =>     ["ul",    "ul"], #  underline character overstrikes
-      "xon_xoff" =>                  ["xon",   "xo"]  #  terminal uses xon/xoff handshaking
+      "xon_xoff" =>                  ["xon",   "xo"], #  terminal uses xon/xoff handshaking
+      #ifdef __INTERNAL_CAPS_VISIBLE
+      "backspaces_with_bs" =>        ["OTbs"], #  
+      "crt_no_scrolling" =>          ["OTns"], #  
+      "no_correctly_working_cr" =>   ["OTnc"], #  
+      "gnu_has_meta_key" =>          ["OTMT"], #  
+      "linefeed_is_newline" =>       ["OTNL"], #  
+      "has_hardware_tabs" =>         ["OTpt"], #  
+      "return_does_clr_eol" =>       ["OTxr"], #  
     }
 
     # Numeric terminfo capabilities
@@ -89,7 +97,14 @@ module Terminfo
       "output_res_line" =>           ["orl",   "Yj"], #  vertical resolution in units per line
       "output_res_vert_inch" =>      ["orvi",  "Yl"], #  vertical resolution in units per inch
       "print_rate" =>                ["cps",   "Ym"], #  print rate in char‐ acters per second
-      "wide_char_size" =>            ["widcs", "Yn"]  #  character step size when in double wide mode
+      "wide_char_size" =>            ["widcs", "Yn"], #  character step size when in double wide mode
+      #ifdef __INTERNAL_CAPS_VISIBLE
+      "magic_cookie_glitch_ul" =>    ["UTug"], #  
+      "carriage_return_delay" =>     ["OTdC"], #  
+      "new_line_delay" =>            ["OTdN"], #  
+      "backspace_delay" =>           ["OTdB"], #  
+      "horizontal_tab_delay" =>      ["OTdT"], #  
+      "number_of_function_keys" =>   ["OTkn"], #  
     }
 
     # String terminfo capabilities
@@ -515,7 +530,28 @@ module Terminfo
       "enter_top_hl_mode" =>         ["ethlm",  "Xt"], # Enter top highlight mode
       "enter_vertical_hl_mode" =>    ["evhlm",  "Xv"], # Enter vertical high‐ light mode
       "set_a_attributes" =>          ["sgr1",   "sA"], # Define second set of video attributes #1-#6
-      "set_pglen_inch" =>            ["slength","sL"]  # YI Set page length to #1 hundredth of an inch
+      "set_pglen_inch" =>            ["slength","sL"], # YI Set page length to #1 hundredth of an inch
+      # #ifdef __INTERNAL_CAPS_VISIBLE
+      "termcap_init2" =>             ["OTi2"], #  
+      "termcap_reset" =>             ["OTrs"], #  
+      "linefeed_if_not_lf" =>        ["OTnl"], #  
+      "backspace_if_not_bs" =>       ["OTbs"], #  
+      "other_non_function_keys" =>   ["OTko"], #  
+      "arrow_key_map" =>             ["OTma"], #  
+      "acs_ulcorner" =>              ["OTG2"], #  
+      "acs_llcorner" =>              ["OTG3"], #  
+      "acs_urcorner" =>              ["OTG1"], #  
+      "acs_lrcorner" =>              ["OTG4"], #  
+      "acs_ltee" =>                  ["OTGR"], #  
+      "acs_rtee" =>                  ["OTGL"], #  
+      "acs_btee" =>                  ["OTGU"], #  
+      "acs_ttee" =>                  ["OTGD"], #  
+      "acs_hline" =>                 ["OTGH"], #  
+      "acs_vline" =>                 ["OTGV"], #  
+      "acs_plus" =>                  ["OTGC"], #  
+      "memory_lock" =>               ["meml"], #  
+      "memory_unlock" =>             ["memu"], #  
+      "box_chars_1" =>               ["box1"], #  
     }
 
   end
