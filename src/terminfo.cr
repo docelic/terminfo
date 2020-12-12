@@ -20,6 +20,8 @@ module Terminfo
   (i=ENV["TERMINFO_DIRS"]?).try do |i| @@directories += i.split ':' end
   (i=ENV["HOME"]?).try          do |i| @@directories.push i + "/.terminfo" end
   @@directories.push \
+    "/etc/terminfo",
+    "/lib/terminfo",
     "/usr/share/terminfo",
     "/usr/share/lib/terminfo",
     "/usr/lib/terminfo",
@@ -27,7 +29,8 @@ module Terminfo
     "/usr/local/share/lib/terminfo",
     "/usr/local/lib/terminfo",
     "/usr/local/ncurses/lib/terminfo",
-    "/lib/terminfo"
+    "/lib/terminfo",
+    "/boot/system/data/terminfo"
 
   # All supported boolean capabilities/functions.
   # This list is somewhat larger than the list of capabilities in `src/alias.cr`
@@ -589,16 +592,8 @@ module Terminfo
   # List of string capabilities from extended data
   property extended_strings : Hash(String,String)
 
-  # Create Terminfo object
-  def initialize(*, path : String, extended = true)
-    File.open(path) do |io| initialize path, io, extended: extended end
-  end
-  # :ditto:
-  def initialize(*, builtin : String, extended = true)
-    initialize ::Terminfo.get_internal(builtin), extended: extended
-  end
-  # :ditto:
-  def initialize(*, term : String, extended = true)
+  # Create Terminfo object from term name
+  def initialize(*, term : String, extended = Terminfo.extended?)
     filename = nil
     # scan all possible locations
     ::Terminfo.directories.each do |dir|
@@ -622,7 +617,12 @@ module Terminfo
     end
   end
   # :ditto:
-  def initialize(extended = true)
+  def initialize(*, builtin : String, extended = Terminfo.extended?)
+    initialize ::Terminfo.get_internal(builtin), extended: extended
+  end
+
+  # Create Terminfo object after auto-detecting current term name
+  def initialize(extended = Terminfo.extended?)
     if filename = ENV["TERMINFO"]?
       initialize path: filename, extended: extended
     elsif term = ENV["TERM"]?
@@ -632,15 +632,18 @@ module Terminfo
     end
   end
 
-  # :ditto:
-  def initialize(file : BakedFileSystem::BakedFile, extended = true)
-    initialize file, ::IO::Memory.new(file.read), extended: extended
+  # Create Terminfo object from file
+  def initialize(*, path : String, extended = Terminfo.extended?)
+    File.open(path) do |io| initialize path, io, extended: extended end
   end
   # :ditto:
-  def initialize(file : File, extended = true)
+  def initialize(file : File, extended = Terminfo.extended?)
     initialize file, extended: extended
   end
-
+  # :ditto:
+  def initialize(file : BakedFileSystem::BakedFile, extended = Terminfo.extended?)
+    initialize file, ::IO::Memory.new(file.read), extended: extended
+  end
   # :ditto:
   def initialize(file, io : IO, extended = ::Terminfo.extended?)
 

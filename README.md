@@ -14,7 +14,7 @@ It supports:
 1. Providing raw access to parsed terminfo data
 1. Using internally stored terminfo data for most common terminals
 
-*It is implemented natively and does not depend on ncurses or other external library.*
+It is implemented natively and does not depend on ncurses or other external library.
 
 ## Installation
 
