@@ -5,6 +5,13 @@ require "./alias"
 module Terminfo
   VERSION = "0.8.1"
 
+  macro read_i16le(io)
+    io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
+  end
+  macro read_i8le(io)
+    io.read_bytes(Int8, IO::ByteFormat::LittleEndian)
+  end
+
   extend BakedFileSystem
   bake_folder "../filesystem/"
 
@@ -576,21 +583,20 @@ module Terminfo
   # Description from the parsed terminfo
   property description : String
   # List of boolean capabilities
-  property booleans : Hash(String,Bool)
+  property booleans : Hash(String,Bool?)
   # List of numeric capabilities
-  property numbers : Hash(String,Int16)
+  property numbers : Hash(String,Int16?)
   # List of string capabilities
-  property strings : Hash(String,String)
+  property strings : Hash(String,String?)
 
   # Contents of extended terminfo file header
   property extended_header : ExtendedHeader?
   # List of boolean capabilities from extended data
-  property booleans : Hash(String,Bool)
-  property extended_booleans : Hash(String,Bool)
+  property extended_booleans : Hash(String,Bool?)
   # List of numeric capabilities from extended data
-  property extended_numbers : Hash(String,Int16)
+  property extended_numbers : Hash(String,Int16?)
   # List of string capabilities from extended data
-  property extended_strings : Hash(String,String)
+  property extended_strings : Hash(String,String?)
 
   # Create Terminfo object from term name
   def initialize(*, term : String, extended = Terminfo.extended?)
@@ -708,9 +714,9 @@ module Terminfo
 
     # Booleans Section; One byte for each flag
     # Same order as <term.h>
-    @booleans = Hash(String,Bool).new
+    @booleans = Hash(String,Bool?).new
     @header.booleans_size.times do |i|
-      @booleans[Booleans[i]] = io.read_bytes(Int8, IO::ByteFormat::LittleEndian) == 1
+      @booleans[Booleans[i]] = read_i8le(io) == 1
     end
 
     if (io.pos % 2)>0
@@ -719,12 +725,14 @@ module Terminfo
     end
 
     # Numbers Section
-    @numbers = Hash(String,Int16).new
+    @numbers = Hash(String,Int16?).new
     @header.numbers_size.times do |i|
-      n = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      n=-1i16 if n == 65535 # XXX or n>= 65533 ?
-      @numbers[Numbers[i]] = n
+      n = ::Terminfo.read_i16le(io)
+      n = -1i16 if n == 65535
       #puts "#{v} = #{n}"
+      if n != -1
+        @numbers[Numbers[i]] = n
+      end
     end
 
     if (io.pos % 2)>0
@@ -734,16 +742,23 @@ module Terminfo
 
     # Strings section. This section contains offsets, which then need to be read.
     endpos = io.pos + header.strings_size * 2
-    @strings = Hash(String,String).new
+    @strings = Hash(String,String?).new
     @header.strings_size.times do |i|
       k = Strings[i]
-      offset = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
+      offset = ::Terminfo.read_i16le(io)
       pos = io.pos
       # Workaround: fix an odd bug in the screen-256color terminfo where it tries
       # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
-      if offset<65534
+      if offset==65534
+        offset=-1
+      elsif offset<-1
+        raise Exception.new "Invalid string offset: #{offset}"
+      end
+
+      if offset != -1
         io.seek endpos+offset, ::IO::Seek::Set
-        @strings[k] = io.gets(Char::ZERO, true) || ""
+        c = io.gets(Char::ZERO, true) #|| ""
+        @strings[k] = c if c
       end
       io.seek pos, ::IO::Seek::Set
     end
@@ -806,9 +821,9 @@ module Terminfo
     # Booleans Section
     # One byte for each flag
     # Same order as <term.h>
-    _booleans = [] of Bool
+    _booleans = [] of Bool?
     header.booleans_size.times do |i|
-      _booleans.push io.read_bytes(Int8, IO::ByteFormat::LittleEndian) == 1
+      _booleans.push read_i8le(io) == 1
     end
 
     if (io.pos % 2)>0
@@ -816,27 +831,29 @@ module Terminfo
     end
 
     # Numbers Section
-    _numbers = [] of Int16
+    _numbers = [] of Int16?
     header.numbers_size.times do |i|
-      n = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      n=-1i16 if n == 65535 # XXX or > 65533 ?
-      _numbers.push n
+      n = ::Terminfo.read_i16le(io)
+      n=-1i16 if n == 65535
+      _numbers.push (n!=-1) ? n : nil
       #puts "#{v} = #{n}"
     end
 
     # Strings section
     # TODO combine these 2 blocks into one
     endpos = io.pos + header.symbol_offsets_size * 2 + header.strings_size * 2
-    _strings = [] of Int16
+    _strings = [] of Int16?
     header.strings_size.times do |i|
-      offset = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
+      offset = ::Terminfo.read_i16le(io)
       # Workaround: fix an odd bug in the screen-256color terminfo where it tries
       # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
-      if offset<65534
-        _strings.push offset
-      else
-        _strings.push -1
+      if offset==65534
+        offset=-1i16
+      elsif offset<-1
+        raise Exception.new "Invalid string offset in extended part: #{offset}"
       end
+
+      _strings.push (offset!=-1) ? offset : nil
     end
     # Both are alternative ways and work:
     #p io.size - header.lastStrTableOffset
@@ -845,14 +862,14 @@ module Terminfo
     # Remember the pos we are at after having parsed the offsets table
     pos = io.pos
     high = 0 # Index at which string table is done
-    _strings2 = [] of String
+    _strings2 = [] of String?
     _strings.each do |offset|
-      if offset == -1
+      unless offset
          # XXX or just next?
-        _strings2.push ""
+        _strings2.push nil
       else
         io.seek pos+offset, ::IO::Seek::Set
-        _strings2.push io.gets(Char::ZERO,true) || ""
+        _strings2.push io.gets(Char::ZERO,true) #|| ""
         high = io.pos if io.pos > high
       end
     end
@@ -876,19 +893,19 @@ module Terminfo
     # Identify by name
     j = 0
 
-    booleans = {} of String => Bool
+    booleans = {} of String => Bool?
     _booleans.each do |bool|
       booleans[symbols[j]] = bool
       j+=1
     end
 
-    numbers = {} of String => Int16
+    numbers = {} of String => Int16?
     _numbers.each do |number|
       numbers[symbols[j]] = number
       j+=1
     end
 
-    strings = {} of String => String
+    strings = {} of String => String?
     _strings2.each do |string|
       strings[symbols[j]] = string
       j+=1
@@ -910,22 +927,31 @@ module Terminfo
     property strings_table_size : Int16
     property total_size : Int16
 
-
     def initialize(io : IO)
       @data_size      = io.size.to_i16
       @header_size    = 12
-      @magic_number   = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[1] << 8) | io[0]
+      @magic_number   = ::Terminfo.read_i16le(io) #(io[1] << 8) | io[0]
 
       if @magic_number != 0x11A
         raise Exception.new "Bad magic number; expecting: 0x11A, got: #{@magic_number}"
       end
 
-      @names_size     = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[3] << 8) | io[2]
-      @booleans_size     = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[5] << 8) | io[4]
-      @numbers_size   = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[7] << 8) | io[6]
-      @strings_size   = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[9] << 8) | io[8]
-      @strings_table_size = io.read_bytes(Int16, IO::ByteFormat::LittleEndian) #(io[11] << 8) | io[10]
+      @names_size     = ::Terminfo.read_i16le(io) #(io[3] << 8) | io[2]
+      @booleans_size     = ::Terminfo.read_i16le(io) #(io[5] << 8) | io[4]
+      @numbers_size   = ::Terminfo.read_i16le(io) #(io[7] << 8) | io[6]
+      @strings_size   = ::Terminfo.read_i16le(io) #(io[9] << 8) | io[8]
+      @strings_table_size = ::Terminfo.read_i16le(io) #(io[11] << 8) | io[10]
       @total_size     = @header_size + @names_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
+
+      raise Exception.new "Invalid header section: names" if @names_size <= 0
+      raise Exception.new "Invalid header section: booleans" if @booleans_size < 0
+      raise Exception.new "Invalid header section: numbers" if @numbers_size < 0
+      raise Exception.new "Invalid header section: strings" if @strings_size < 0
+      raise Exception.new "Invalid header section size: strings" if @strings_table_size < 0
+
+      raise Exception.new "Too many booleans" if @booleans_size > Booleans.size
+      raise Exception.new "Too many numbers" if @numbers_size > Numbers.size
+      raise Exception.new "Too many strings" if @strings_size > Strings.size
     end
 
     # Converts Terminfo header object to Hash
@@ -957,11 +983,11 @@ module Terminfo
 
     def initialize(io : IO)
       @header_size           = 10
-      @booleans_size         = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      @numbers_size          = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      @strings_size          = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      @strings_table_size    = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      @last_strings_table_offset = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
+      @booleans_size         = ::Terminfo.read_i16le(io)
+      @numbers_size          = ::Terminfo.read_i16le(io)
+      @strings_size          = ::Terminfo.read_i16le(io)
+      @strings_table_size    = ::Terminfo.read_i16le(io)
+      @last_strings_table_offset = ::Terminfo.read_i16le(io)
       @symbol_offsets_size   = @strings_table_size - @strings_size
       @total_size            = @header_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
     end
