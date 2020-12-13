@@ -1,6 +1,11 @@
 class Terminfo
 
   module TermImpl
+    #::Log.for 'terminfo'
+
+    macro read_i32le(io)
+      io.read_bytes(Int32, IO::ByteFormat::LittleEndian)
+    end
     macro read_i16le(io)
       io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
     end
@@ -24,7 +29,7 @@ class Terminfo
     # List of boolean capabilities
     property booleans : Hash(String,Bool?)
     # List of numeric capabilities
-    property numbers : Hash(String,Int16?)
+    property numbers : Hash(String,Int32?)
     # List of string capabilities
     property strings : Hash(String,String?)
 
@@ -33,7 +38,7 @@ class Terminfo
     # List of boolean capabilities from extended data
     property extended_booleans : Hash(String,Bool?)
     # List of numeric capabilities from extended data
-    property extended_numbers : Hash(String,Int16?)
+    property extended_numbers : Hash(String,Int32?)
     # List of string capabilities from extended data
     property extended_strings : Hash(String,String?)
 
@@ -59,10 +64,10 @@ class Terminfo
       #   headerSize: 12,
       #   magic_number: 282,
       #   names_size: 48,
-      #   booleans_size: 38,
-      #   numbers_size: 15,
-      #   strings_size: 413,
-      #   strings_table_size: 1388,
+      #   booleans_count: 38,
+      #   numbers_count: 15,
+      #   strings_count: 413,
+      #   strings_table_items_count: 1388,
       #   total: 2342 }
 
       # For some xterm, layout:
@@ -78,13 +83,13 @@ class Terminfo
       #   data.length - h.lastStrTableOffset === 248
       #     (sym-offset end, string-table start)
       #   364 + 316 === 680 (lastStrTableOffset)
-      # How strings_table_size works:
-      #   h.strings_size + [symOffsetCount] === h.strings_table_size
-      #   57 + 60 === 117 (strings_table_size)
+      # How strings_table_items_count works:
+      #   h.strings_count + [symOffsetCount] === h.strings_table_items_count
+      #   57 + 60 === 117 (strings_table_items_count)
       #   symOffsetCount doesn't actually exist in the header. it's just implied.
       # Getting the number of sym offsets:
-      #   h.symOffsetCount = h.strings_table_size - h.strings_size;
-      #   h.symOffsetSize = (h.strings_table_size - h.strings_size) * 2;
+      #   h.symOffsetCount = h.strings_table_items_count - h.strings_count;
+      #   h.symOffsetSize = (h.strings_table_items_count - h.strings_count) * 2;
 
       @header = Header.new io
 
@@ -97,50 +102,67 @@ class Terminfo
       @description = names.pop || ""
       @names = names
 
+      Log.trace { "Parsing data for #{name.i}" }
+
       # Booleans Section; One byte for each flag
       # Same order as <term.h>
       @booleans = Hash(String,Bool?).new
-      @header.booleans_size.times do |i|
+      @header.booleans_count.times do |i|
         @booleans[Booleans[i]] = read_i8le(io) == 1
       end
 
+      Log.trace { "Parsed booleans for #{name.i}" }
+
       if (io.pos % 2)>0
         # Null byte in between to make sure numbers begin on an even byte.
+        Log.trace { "Skipping a byte (#{io.peek[0]}) for #{name.i}" }
         io.seek 1, ::IO::Seek::Current
       end
 
       # Numbers Section
-      @numbers = Hash(String,Int16?).new
-      @header.numbers_size.times do |i|
-        n = ::Terminfo::TermImpl.read_i16le(io)
-        n = -1i16 if n == 65535
+      @numbers = Hash(String,Int32?).new
+      @header.numbers_count.times do |i|
+        if @header.magic_number = 282
+          n = ::Terminfo::TermImpl.read_i16le(io).to_i32
+          Log.trace { "Read number: #{n.i}" }
+          n = -1 if n == 65535
+        else # 542
+          n = ::Terminfo::TermImpl.read_i32le(io)
+          Log.trace { "Read number: #{n.i}" }
+          #n = -1 if n == 4294967295 # XXX is this a thing?
+        end
         #puts "#{v} = #{n}"
-        if n != -1
+        if n<-2
+          raise Exception.new "Invalid number: #{n} (must be -2 <= n < max(int16/int32))"
+        end
+        if n >= 0
           @numbers[Numbers[i]] = n
         end
       end
 
       if (io.pos % 2)>0
         # Null byte in between to make sure numbers begin on an even byte.
+        Log.trace { "Skipping a byte (#{io.peek[0]}) for #{name.i}" }
         io.seek 1, ::IO::Seek::Current
       end
 
       # Strings section. This section contains offsets, which then need to be read.
-      endpos = io.pos + header.strings_size * 2
+      endpos = io.pos + header.strings_count * 2
       @strings = Hash(String,String?).new
-      @header.strings_size.times do |i|
+      @header.strings_count.times do |i|
         k = Strings[i]
         offset = ::Terminfo::TermImpl.read_i16le(io)
+        Log.trace { "String nr. #{i} (#{k.i}) is at offset int: #{offset.i}" }
         pos = io.pos
         # Workaround: fix an odd bug in the screen-256color terminfo where it tries
         # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
         if offset==65534
           offset=-1
-        elsif offset<-1
-          raise Exception.new "Invalid string offset: #{offset}"
+        elsif offset<-2
+          raise Exception.new "Invalid string offset: #{offset} (must be -2 <= offset < max(int16))"
         end
 
-        if offset != -1
+        if offset >= 0
           io.seek endpos+offset, ::IO::Seek::Set
           c = io.gets(Char::ZERO, true) #|| ""
           @strings[k] = c if c
@@ -151,7 +173,7 @@ class Terminfo
       #io.seek endpos, ::IO::Seek::Set
 
       # We've parsed the string offsets, now advance forward by the size of the strings table
-      io.seek endpos + header.strings_table_size, ::IO::Seek::Set
+      io.seek endpos + header.strings_table_items_count, ::IO::Seek::Set
 
       if !extended || (io.pos == header.data_size)
         #[
@@ -168,6 +190,7 @@ class Terminfo
       else
         if (io.pos % 2)>0
           # Null byte in between to make sure numbers begin on an even byte.
+          Log.trace { "Skipping a byte (#{io.peek[0]}) for #{name.i}" }
           io.seek 1, ::IO::Seek::Current
         end
 
@@ -194,10 +217,10 @@ class Terminfo
       # { header:
       #    { data_size: 928,
       #      headerSize: 10,
-      #      booleans_size: 2,
-      #      numbers_size: 1,
-      #      strings_size: 57,
-      #      strings_table_size: 117,
+      #      booleans_count: 2,
+      #      numbers_count: 1,
+      #      strings_count: 57,
+      #      strings_table_items_count: 117,
       #      lastStrTableOffset: 680,
       #      total: 245 },
 
@@ -207,38 +230,47 @@ class Terminfo
       # One byte for each flag
       # Same order as <term.h>
       _booleans = [] of Bool?
-      header.booleans_size.times do |i|
+      header.booleans_count.times do |i|
         _booleans.push read_i8le(io) == 1
       end
 
       if (io.pos % 2)>0
+        Log.trace { "Skipping a byte (#{io.peek[0]}) for #{name.i}" }
         io.seek 1, ::IO::Seek::Current
       end
 
       # Numbers Section
-      _numbers = [] of Int16?
-      header.numbers_size.times do |i|
-        n = ::Terminfo::TermImpl.read_i16le(io)
-        n=-1i16 if n == 65535
-        _numbers.push (n!=-1) ? n : nil
+      _numbers = [] of Int32?
+      header.numbers_count.times do |i|
+        if @header.magic_number = 282
+          n = ::Terminfo::TermImpl.read_i16le(io).to_i32
+          n = -1 if n == 65535
+        else
+          n = ::Terminfo::TermImpl.read_i32le(io)
+          n = -1 if n == 4294967295 # XXX is this a thing?
+        end
+        if n<-2
+          raise Exception.new "Invalid number: #{n} (must be -2 <= n < max(int16/int32))"
+        end
+        _numbers.push (n>=0) ? n : nil
         #puts "#{v} = #{n}"
       end
 
       # Strings section
       # TODO combine these 2 blocks into one
-      endpos = io.pos + header.symbol_offsets_size * 2 + header.strings_size * 2
+      endpos = io.pos + header.symbol_offsets_size * 2 + header.strings_count * 2
       _strings = [] of Int16?
-      header.strings_size.times do |i|
+      header.strings_count.times do |i|
         offset = ::Terminfo::TermImpl.read_i16le(io)
         # Workaround: fix an odd bug in the screen-256color terminfo where it tries
         # to set -1, but it appears to have {0xfe, 0xff} (65534) instead of {0xff, 0xff} (65535).
         if offset==65534
           offset=-1i16
         elsif offset<-1
-          raise Exception.new "Invalid string offset in extended part: #{offset}"
+          raise Exception.new "Invalid string offset: #{offset} (must be -2 <= offset < max(int16))"
         end
 
-        _strings.push (offset!=-1) ? offset : nil
+        _strings.push (offset>=0) ? offset : nil
       end
       # Both are alternative ways and work:
       #p io.size - header.lastStrTableOffset
@@ -263,6 +295,7 @@ class Terminfo
 
       # XXX not sure if needed?
       if (io.pos % 2)>0
+        Log.trace { "Skipping a byte (#{io.peek[0]}) for #{name.i}" }
         io.seek 1, ::IO::Seek::Current
       end
 
@@ -284,7 +317,7 @@ class Terminfo
         j+=1
       end
 
-      numbers = {} of String => Int16?
+      numbers = {} of String => Int32?
       _numbers.each do |number|
         numbers[symbols[j]] = number
         j+=1
@@ -306,10 +339,10 @@ class Terminfo
       property header_size : Int16
       property magic_number : Int16
       property names_size : Int16
-      property booleans_size : Int16
-      property numbers_size : Int16
-      property strings_size : Int16
-      property strings_table_size : Int16
+      property booleans_count : Int16
+      property numbers_count : Int16
+      property strings_count : Int16
+      property strings_table_items_count : Int16
       property total_size : Int16
 
       def initialize(io : IO)
@@ -317,26 +350,30 @@ class Terminfo
         @header_size    = 12
         @magic_number   = ::Terminfo::TermImpl.read_i16le(io) #(io[1] << 8) | io[0]
 
-        #if @magic_number != 282
-        #  raise Exception.new "Bad magic number; expecting: 0x11A, got: #{@magic_number}"
-        #end
+        # Magic number: 282 == 16-bit signed integers, 542 == 32-bit signed integers
+        # 32-bit became possible in ncurses 6.1. The change affects the number array.
+        unless [282, 542].includes? @magic_number
+          raise Exception.new "Bad magic number; expecting: 282 or 542, got: #{@magic_number}"
+        end
 
         @names_size     = ::Terminfo::TermImpl.read_i16le(io) #(io[3] << 8) | io[2]
-        @booleans_size     = ::Terminfo::TermImpl.read_i16le(io) #(io[5] << 8) | io[4]
-        @numbers_size   = ::Terminfo::TermImpl.read_i16le(io) #(io[7] << 8) | io[6]
-        @strings_size   = ::Terminfo::TermImpl.read_i16le(io) #(io[9] << 8) | io[8]
-        @strings_table_size = ::Terminfo::TermImpl.read_i16le(io) #(io[11] << 8) | io[10]
-        @total_size     = @header_size + @names_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
+        @booleans_count  = ::Terminfo::TermImpl.read_i16le(io) #(io[5] << 8) | io[4]
+        @numbers_count   = ::Terminfo::TermImpl.read_i16le(io) #(io[7] << 8) | io[6]
+        @strings_count   = ::Terminfo::TermImpl.read_i16le(io) #(io[9] << 8) | io[8]
+        @strings_table_items_count = ::Terminfo::TermImpl.read_i16le(io) #(io[11] << 8) | io[10]
+        @total_size     = @header_size + @names_size + @booleans_count + @numbers_count*2 + @strings_count*2 + @strings_table_items_count
+
+        Log.debug { "Header: #{to_h.to_json}" }
 
         raise Exception.new "Invalid header section: names" if @names_size <= 0
-        raise Exception.new "Invalid header section: booleans" if @booleans_size < 0
-        raise Exception.new "Invalid header section: numbers" if @numbers_size < 0
-        raise Exception.new "Invalid header section: strings" if @strings_size < 0
-        raise Exception.new "Invalid header section size: strings" if @strings_table_size < 0
+        raise Exception.new "Invalid header section: booleans" if @booleans_count < 0
+        raise Exception.new "Invalid header section: numbers" if @numbers_count < 0
+        raise Exception.new "Invalid header section: strings" if @strings_count < 0
+        raise Exception.new "Invalid header section size: strings" if @strings_table_items_count < 0
 
-        raise Exception.new "Too many booleans" if @booleans_size > Booleans.size
-        raise Exception.new "Too many numbers" if @numbers_size > Numbers.size
-        raise Exception.new "Too many strings" if @strings_size > Strings.size
+        raise Exception.new "Too many booleans" if @booleans_count > Booleans.size
+        raise Exception.new "Too many numbers" if @numbers_count > Numbers.size
+        raise Exception.new "Too many strings" if @strings_count > Strings.size
       end
 
       # Converts Terminfo header object to Hash
@@ -346,10 +383,10 @@ class Terminfo
           :header_size        => @header_size,
           :magic_number       => @magic_number,
           :names_size         => @names_size,
-          :booleans_size      => @booleans_size,
-          :numbers_size       => @numbers_size,
-          :strings_size       => @strings_size,
-          :strings_table_size => @strings_table_size,
+          :booleans_count      => @booleans_count,
+          :numbers_count       => @numbers_count,
+          :strings_count       => @strings_count,
+          :strings_table_items_count => @strings_table_items_count,
           :total_size         => @total_size,
         }
       end
@@ -358,34 +395,41 @@ class Terminfo
     # Extended terminfo header data
     class ExtendedHeader
       property header_size : Int16
-      property booleans_size : Int16
-      property numbers_size : Int16
-      property strings_size : Int16
-      property strings_table_size : Int16
-      property last_strings_table_offset : Int16
+      property booleans_count : Int16
+      property numbers_count : Int16
+      property strings_count : Int16
+      property strings_table_items_count : Int16
+      property strings_table_byte_size : Int16
       property total_size : Int16
       property symbol_offsets_size : Int16
 
       def initialize(io : IO)
+        Log.trace { "Initializing extended header for #{io.i}" }
         @header_size           = 10
-        @booleans_size         = ::Terminfo::TermImpl.read_i16le(io)
-        @numbers_size          = ::Terminfo::TermImpl.read_i16le(io)
-        @strings_size          = ::Terminfo::TermImpl.read_i16le(io)
-        @strings_table_size    = ::Terminfo::TermImpl.read_i16le(io)
-        @last_strings_table_offset = ::Terminfo::TermImpl.read_i16le(io)
-        @symbol_offsets_size   = @strings_table_size - @strings_size
-        @total_size            = @header_size + @booleans_size + @numbers_size*2 + @strings_size*2 + @strings_table_size
+        @booleans_count         = ::Terminfo::TermImpl.read_i16le(io)
+        @numbers_count          = ::Terminfo::TermImpl.read_i16le(io)
+        @strings_count          = ::Terminfo::TermImpl.read_i16le(io)
+        @strings_table_items_count    = ::Terminfo::TermImpl.read_i16le(io)
+        @strings_table_byte_size = ::Terminfo::TermImpl.read_i16le(io)
+        @symbol_offsets_size   = @strings_table_items_count - @strings_count
+        @total_size            = @header_size + @booleans_count + @numbers_count*2 + @strings_count*2 + @strings_table_items_count
+        Log.debug { "Extended header: #{to_h.to_json}" }
+
+        raise Exception.new "Invalid header section: booleans" if @booleans_count < 0
+        raise Exception.new "Invalid header section: numbers" if @numbers_count < 0
+        raise Exception.new "Invalid header section: strings" if @strings_count < 0
+        raise Exception.new "Invalid header section size: strings" if @strings_table_items_count < 0
       end
 
       # Converts extended Terminfo header object to Hash
       def to_h
         {
           :header_size         => @header_size,
-          :booleans_size       => @booleans_size,
-          :numbers_size        => @numbers_size,
-          :strings_size        => @strings_size,
-          :strings_table_size  => @strings_table_size,
-          :last_strings_table_offset => @last_strings_table_offset,
+          :booleans_count       => @booleans_count,
+          :numbers_count        => @numbers_count,
+          :strings_count        => @strings_count,
+          :strings_table_items_count  => @strings_table_items_count,
+          :strings_table_byte_size => @strings_table_byte_size,
           :symbol_offsets_size => @symbol_offsets_size,
           :total_size          => @total_size,
         }

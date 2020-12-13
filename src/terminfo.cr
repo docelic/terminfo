@@ -1,6 +1,8 @@
 require "log"
 Log.setup_from_env
+require "json"
 
+require "./ext"
 require "./capabilities"
 require "./term"
 require "./storage"
