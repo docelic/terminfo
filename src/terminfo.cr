@@ -86,16 +86,16 @@ class Terminfo
   def initialize(*, builtin : String, extended = Terminfo.extended?)
     @file = builtin
     Log.debug { "Using builtin terminfo file #{@file.inspect}" }
-    @data = Term.new io: ::IO::Memory.new(::Terminfo::Storage.get_internal(builtin).read), extended: extended
+    @data = Term.new io: ::IO::Memory.new(::Terminfo::Storage.get_internal(builtin).read), extended: extended, capabilities: @capabilities
   end
   def initialize(*, path : String, extended = Terminfo.extended?)
     @file = path
     Log.debug { "Using terminfo file #{@file.inspect}" }
-    @data = File.open(path) do |io| Term.new io: io, extended: extended end
+    @data = File.open(path) do |io| Term.new io: io, extended: extended, capabilities: @capabilities end
   end
   def initialize(*, file : File, extended = Terminfo.extended?)
     @file = file.path
     Log.debug { "Using terminfo file #{@file.inspect}" }
-    @data = Term.new io: File, extended: extended
+    @data = Term.new io: File, extended: extended, capabilities: @capabilities
   end
 end
