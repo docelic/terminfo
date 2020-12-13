@@ -41,7 +41,7 @@ class Terminfo
   }
 
   getter data
-  getter capabilities = Capabilities::Data.new
+  getter capabilities = Capabilities.new
 
   # Create Terminfo object after auto-detecting current term name
   def initialize(extended = Terminfo.extended?)

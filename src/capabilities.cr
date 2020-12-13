@@ -1,6 +1,23 @@
 class Terminfo
   # Mappings between symbolic, terminfo, and termcap names, and corresponding indices. Taken from terminfo(5) man page.
-  module Capabilities
+  class Capabilities
+
+    getter booleans
+    getter numbers
+    getter strings
+
+    def initialize
+      @booleans = Booleans.new
+      @numbers = Numbers.new
+      @strings = Strings.new
+
+      def add_boolean(*names)
+        names.each do |name|
+          # ...
+        end
+      end
+    end
+
     module Macros
       # Creates all getters based on table with data.
       #
@@ -20,9 +37,9 @@ class Terminfo
         # Will keep list of  name
         {% list = [] of String %}
         {% for e, idx in table.resolve %}
-          {{e[0].id}} = {{idx}} # Creates the constant
+          #{{e[0].id}} = {{idx}} # Creates the constant
           {% list << e[1] %}
-          class_getter {{e[1].id}} = {{idx}}
+          #class_getter {{e[1].id}} = {{idx}}
           #getter {{e[1].id}} = {{idx}}
           {% for n, idx2 in e %}
             {% if (idx2==1) && (indices[n]) && (e[1]!=e[2]) %}
@@ -45,7 +62,7 @@ class Terminfo
     end
 
     # Boolean terminfo capabilities
-    module Booleans
+    class Booleans
       include Macros
 
       Table = [
@@ -99,7 +116,7 @@ class Terminfo
     end
 
     # Numeric terminfo capabilities
-    module Numbers
+    class Numbers
       include Macros
 
       Table = [
@@ -148,7 +165,7 @@ class Terminfo
     end
 
     # String terminfo capabilities
-    module Strings
+    class Strings
       include Macros
 
       Table = [
@@ -571,8 +588,5 @@ class Terminfo
       create_all_from Table
     end
 
-    class Data
-      include Capabilities
-    end
   end
 end
