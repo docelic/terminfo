@@ -1,15 +1,6 @@
 require "../src/terminfo"
 
-# With own class
-class MyClass
-  include Terminfo
-end
-my = MyClass.new
-
-# With built-in class
-data = Terminfo::Data.new path: "/lib/terminfo/x/xterm"
-data = Terminfo::Data.new term: "xterm"
-data = Terminfo::Data.new builtin: "xterm"
-data = Terminfo::Data.new
-
-p data.name
+t = Terminfo.new path: "/lib/terminfo/x/xterm"
+t = Terminfo.new term: "xterm"
+t = Terminfo.new builtin: "xterm"
+t = Terminfo.new

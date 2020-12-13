@@ -2,27 +2,32 @@ require "./spec_helper"
 
 describe Terminfo do
   it "contains booleans, numbers, and strings" do
-    ::Terminfo::Booleans.class.should   eq Array(String)
-    ::Terminfo::Numbers.class.should eq Array(String)
-    ::Terminfo::Strings.class.should eq Array(String)
+    ::Terminfo::Capabilities::Booleans::Table.class.should eq Array(Array(String))
+    ::Terminfo::Capabilities::Numbers::Table.class.should eq Array(Array(String))
+    ::Terminfo::Capabilities::Strings::Table.class.should eq Array(Array(String))
   end
 
   it "has values in booleans, numbers, and strings" do
-    ::Terminfo::Booleans[0].should eq "auto_left_margin"
-    ::Terminfo::Numbers[10].should  eq "label_width"
-    ::Terminfo::Strings[-1].should eq "box_chars_1"
+    ::Terminfo::Capabilities::Booleans::Table[0][1].should eq "auto_left_margin"
+    ::Terminfo::Capabilities::Booleans["auto_left_margin"].should eq 0
+
+    ::Terminfo::Capabilities::Numbers["label_width"].should eq 10
+    ::Terminfo::Capabilities::Numbers["lw"].should eq 10
+    ::Terminfo::Capabilities::Numbers["LabelWidth"].should eq 10
+
+    ::Terminfo::Capabilities::Strings["box_chars_1"].should eq ::Terminfo::Capabilities::Strings::Table.size-1
   end
 
   it "has internal storage" do
-    ::Terminfo.has_internal?("xterm").should be_true
-    ::Terminfo.has_internal?("nonexistent").should be_false
+    ::Terminfo::Storage.has_internal?("xterm").should be_true
+    ::Terminfo::Storage.has_internal?("nonexistent").should be_false
 
-    ::Terminfo.get_internal?("xterm").class.should eq ::BakedFileSystem::BakedFile
-    ::Terminfo.get_internal("xterm").read.size.should eq 3328
+    ::Terminfo::Storage.get_internal?("xterm").class.should eq ::BakedFileSystem::BakedFile
+    ::Terminfo::Storage.get_internal("xterm").read.size.should eq 3328
   end
 
   it "can parse terminfo file content" do
-    tidata = ::Terminfo::Data.new ::Terminfo.get_internal("xterm")
+    tidata = ::Terminfo::Term.new ::IO::Memory.new(::Terminfo::Storage.get_internal("xterm").read), true
     tidata.header.to_h.should eq({
       :data_size => 3337,
       :header_size => 12,
