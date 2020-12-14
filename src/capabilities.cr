@@ -45,7 +45,7 @@ class Terminfo
         getter indices = {{indices}}
         getter list = {{list}}
 
-        def [](cap) indices[cap] end
+        #def [](cap) indices[cap] end
         #def self.[](cap) indices[cap] end
 
         # These are disabled for now; can't think of a case where

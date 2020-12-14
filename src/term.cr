@@ -3,22 +3,6 @@ class Terminfo
   module TermImpl
     #::Log.for 'terminfo'
 
-    macro read_i32le(io)
-      x = io.read_bytes(Int32, IO::ByteFormat::LittleEndian)
-      #Log.trace { "Reading 32-bit LE int: #{x}" }
-      x
-    end
-    macro read_i16le(io)
-      x = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
-      #Log.trace { "Reading 16-bit LE int: #{x}" }
-      x
-    end
-    macro read_i8le(io)
-      x = io.read_bytes(Int8, IO::ByteFormat::LittleEndian)
-      #Log.trace { "Reading 8-bit LE int: #{x}" }
-      x
-    end
-
     # Contents of terminfo file header
     property header : Header
     # Name of parsed terminfo term
@@ -488,6 +472,43 @@ class Terminfo
         }
       end
     end
+
+    macro read_i32le(io)
+      x = io.read_bytes(Int32, IO::ByteFormat::LittleEndian)
+      #Log.trace { "Reading 32-bit LE int: #{x}" }
+      x
+    end
+    macro read_i16le(io)
+      x = io.read_bytes(Int16, IO::ByteFormat::LittleEndian)
+      #Log.trace { "Reading 16-bit LE int: #{x}" }
+      x
+    end
+    macro read_i8le(io)
+      x = io.read_bytes(Int8, IO::ByteFormat::LittleEndian)
+      #Log.trace { "Reading 8-bit LE int: #{x}" }
+      x
+    end
+
+    def boolean(arg : String) @booleans[@capabilities.booleans.indices[arg]] end
+    def boolean?(arg : String) @booleans[@capabilities.booleans.indices[arg]?]? end
+    def boolean!(arg : String) @booleans[@capabilities.booleans.indices[arg].not_nil!].not_nil! end
+    def boolean(arg : Int) @booleans[arg] end
+    def boolean?(arg : Int) @booleans[arg]? end
+    def boolean!(arg : Int) @booleans[arg].not_nil! end
+
+    def number(arg : String) @numbers[@capabilities.numbers.indices[arg]] end
+    def number?(arg : String) @numbers[@capabilities.numbers.indices[arg]?]? end
+    def number!(arg : String) @numbers[@capabilities.numbers.indices[arg].not_nil!].not_nil! end
+    def number(arg : Int) @numbers[arg] end
+    def number?(arg : Int) @numbers[arg]? end
+    def number!(arg : Int) @numbers[arg].not_nil! end
+
+    def string(arg : String) @strings[@capabilities.strings.indices[arg]] end
+    def string?(arg : String) @strings[@capabilities.strings.indices[arg]?]? end
+    def string!(arg : String) @strings[@capabilities.strings.indices[arg].not_nil!].not_nil! end
+    def string(arg : Int) @strings[arg] end
+    def string?(arg : Int) @strings[arg]? end
+    def string!(arg : Int) @strings[arg].not_nil! end
   end
 
   class Term
