@@ -10,12 +10,6 @@ class Terminfo
       @booleans = Booleans.new
       @numbers = Numbers.new
       @strings = Strings.new
-
-      def add_boolean(*names)
-        names.each do |name|
-          # ...
-        end
-      end
     end
 
     module Macros
@@ -27,7 +21,7 @@ class Terminfo
       # From this, the macro:
       # 1. Creates all ConstantNames as constants
       # 2. Creates all long_names as getters and class_getters (getters disabled for now)
-      # 3. Creates and populates Indices Hash
+      # 3. Creates and populates indices Hash
       # 4. Creates and populates List Array
       # 5. Defines [] and []? as instance and methods which map all names to indices (instance methods and []? disabled for now)
       # 6. Checks that termcap and terminfo short name aren't conflicting
@@ -48,16 +42,16 @@ class Terminfo
             {% indices[n] = idx %}
           {% end %}
         {% end %}
-        Indices = {{indices}}
-        List = {{list}}
+        getter indices = {{indices}}
+        getter list = {{list}}
 
-        #def [](cap) Indices[cap] end
-        def self.[](cap) Indices[cap] end
+        def [](cap) indices[cap] end
+        #def self.[](cap) indices[cap] end
 
         # These are disabled for now; can't think of a case where
         # one would want to retrieve a non-existing capability.
-        #def self.[]?(cap) Indices[cap]? end
-        #def []?(cap) Indices[cap]? end
+        #def self.[]?(cap) indices[cap]? end
+        #def []?(cap) indices[cap]? end
       end
     end
 

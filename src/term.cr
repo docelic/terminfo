@@ -19,10 +19,6 @@ class Terminfo
       x
     end
 
-    Booleans = Capabilities::Booleans::List
-    Numbers  = Capabilities::Numbers::List
-    Strings  = Capabilities::Strings::List
-
     # Contents of terminfo file header
     property header : Header
     # Name of parsed terminfo term
@@ -33,22 +29,22 @@ class Terminfo
     # Description from the parsed terminfo
     property description : String
     # List of boolean capabilities
-    property booleans : Hash(String,Bool?)
+    property booleans : Hash(Int16,Bool?)
     # List of numeric capabilities
-    property numbers : Hash(String,Int32?)
+    property numbers : Hash(Int16,Int32?)
     # List of string capabilities
-    property strings : Hash(String,String?)
+    property strings : Hash(Int16,String?)
 
     # Contents of extended terminfo file header
     property extended_header : ExtendedHeader?
     # List of boolean capabilities from extended data
-    property extended_booleans : Hash(String,Bool?)
+    property extended_booleans : Hash(Int16,Bool?)
     # List of numeric capabilities from extended data
-    property extended_numbers : Hash(String,Int32?)
+    property extended_numbers : Hash(Int16,Int32?)
     # List of string capabilities from extended data
-    property extended_strings : Hash(String,String?)
+    property extended_strings : Hash(Int16,String?)
 
-    def initialize(io : IO, extended : Bool, capabilities : Capabilities)
+    def initialize(io : IO, extended : Bool, @capabilities : Capabilities)
       # The format has been chosen so that it will be the same on all hardware.
       # An 8 or more bit byte is assumed, but no assumptions about byte
       # ordering or sign extension are made. The compiled file is created with
@@ -112,9 +108,9 @@ class Terminfo
 
       # Booleans Section; One byte for each flag
       # Same order as <term.h>
-      @booleans = Hash(String,Bool?).new
+      @booleans = Hash(Int16,Bool?).new
       @header.booleans_count.times do |i|
-        @booleans[Booleans[i]] = read_i8le(io) == 1
+        @booleans[i.to_i16] = read_i8le(io) == 1
       end
 
       Log.trace { "Parsed booleans for #{name.i}" }
@@ -126,15 +122,15 @@ class Terminfo
       end
 
       # Numbers Section
-      @numbers = Hash(String,Int32?).new
+      @numbers = Hash(Int16,Int32?).new
       @header.numbers_count.times do |i|
         if @header.magic_number == 282
           n = ::Terminfo::TermImpl.read_i16le(io).to_i32
-          Log.trace { "16-bit number nr. #{i}: #{n.i}" }
+          Log.trace { "16-bit number nr. #{i}: #{@capabilities.numbers.list[i]}=#{n.i}" }
           n = -1 if n == 65535
         else # 542
           n = ::Terminfo::TermImpl.read_i32le(io)
-          Log.trace { "32-bit number nr. #{i}: #{n.i}" }
+          Log.trace { "32-bit number nr. #{i}: #{@capabilities.numbers.list[i]}=#{n.i}" }
           #n = -1 if n == 4294967295 # XXX is this a thing?
         end
         #puts "#{v} = #{n}"
@@ -142,8 +138,8 @@ class Terminfo
           raise Exception.new "Invalid number: #{n} (must be -2 <= n < max(int16/int32))"
         end
         if n >= 0
-          Log.trace { "Storing capability #{Numbers[i]}=#{n.i}" }
-          @numbers[Numbers[i]] = n
+          #Log.trace { "Storing capability #{i}=#{n.i}" }
+          @numbers[i.to_i16] = n
         end
       end
 
@@ -155,9 +151,8 @@ class Terminfo
 
       # Strings section. This section contains offsets, which then need to be read.
       endpos = io.pos + header.strings_count * 2
-      @strings = Hash(String,String?).new
+      @strings = Hash(Int16,String?).new
       @header.strings_count.times do |i|
-        k = Strings[i]
         offset = ::Terminfo::TermImpl.read_i16le(io)
         pos = io.pos
         # Workaround: fix an odd bug in the screen-256color terminfo where it tries
@@ -171,8 +166,8 @@ class Terminfo
         if offset >= 0
           io.seek endpos+offset, ::IO::Seek::Set
           c = io.gets(Char::ZERO, true) #|| ""
-          @strings[k] = c if c
-          Log.trace { "String nr. #{i+1} (#{k.i} = #{c.inspect}) is at offset int: #{offset.i}" }
+          @strings[i.to_i16] = c if c
+          Log.trace { "String nr. #{i} (#{@capabilities.strings.list[i].i} = #{c.inspect}) is at offset int: #{offset.i}" }
         end
         io.seek pos, ::IO::Seek::Set
       end
@@ -243,7 +238,7 @@ class Terminfo
       header.booleans_count.times do |i|
         b = read_i8le(io)
         _booleans.push b == 1
-        Log.trace { "Boolean nr. #{i+1} (??? = #{b})" }
+        Log.trace { "Boolean nr. #{i} (??? = #{b})" }
       end
 
       if (io.pos % 2)>0
@@ -265,7 +260,7 @@ class Terminfo
           raise Exception.new "Invalid number: #{n} (must be -2 <= n < max(int16/int32))"
         end
         _numbers.push (n>=0) ? n : nil
-        Log.trace { "Number nr. #{i+1} (??? = #{n})" }
+        Log.trace { "Number nr. #{i} (??? = #{n})" }
         #puts "#{v} = #{n}"
       end
 
@@ -282,7 +277,7 @@ class Terminfo
           raise Exception.new "Invalid string offset: #{offset} (must be -2 <= offset < max(int16))"
         end
 
-        Log.trace { "String nr. #{i+1} is at offset: #{offset}" }
+        Log.trace { "String nr. #{i} is at offset: #{offset}" }
         # Parsing is such that we always add this, but later check whether
         # the offset is valid or not.
         #_strings.push offset
@@ -301,7 +296,7 @@ class Terminfo
           raise Exception.new "Invalid symbol offset: #{offset} (must be -2 <= offset < max(int16))"
         end
 
-        Log.trace { "Symbol nr. #{i+1} is at offset: #{offset}" }
+        Log.trace { "Symbol nr. #{i} is at offset: #{offset}" }
         _symbols.push (offset>=0) ? offset : nil
       end
       # Remember the pos we are at after having parsed the symbol offsets table
@@ -318,7 +313,7 @@ class Terminfo
           _strings2.push v
           end_of_table = io.pos if io.pos > end_of_table
         end
-        Log.trace { "String nr. #{i+1} (??? = #{v.inspect})" }
+        Log.trace { "String nr. #{i} (??? = #{v.inspect})" }
       end
       pos = io.pos
 
@@ -332,27 +327,55 @@ class Terminfo
           _symbols2.push v
           end_of_table = io.pos if io.pos > end_of_table
         end
-        Log.trace { "Symbol nr. #{i+1} (#{v.inspect})" }
+        Log.trace { "Symbol nr. #{i} (#{v.inspect})" }
       end
 
       # Now all that's left to do is to pair symbol names to values, and to
       # update @capabilities with the new values.
       i = 0
       _booleans.each do |value|
-        name=_symbols2[i]
+        name=_symbols2[i].not_nil!
+        next if value.nil?
         Log.trace { "Extended boolean #{name.i}=#{value.i})" }
+        idx = @capabilities.booleans.indices[name]?
+        if !idx
+          idx = @capabilities.booleans.list.size
+          @capabilities.booleans.list.push name
+          @capabilities.booleans.indices[name] = idx
+        end
+        @booleans[idx.to_i16] = value
         i += 1
       end
       _numbers.each do |value|
-        name=_symbols2[i]
+        next if value.nil?
+        name=_symbols2[i].not_nil!
         Log.trace { "Extended number #{name.i}=#{value.i})" }
+        idx = @capabilities.numbers.indices[name]?
+        if !idx
+          idx = @capabilities.numbers.list.size
+          @capabilities.numbers.list.push name
+          @capabilities.numbers.indices[name] = idx
+        end
+        @numbers[idx.to_i16] = value
         i += 1
       end
       _strings2.each do |value|
-        name=_symbols2[i]
+        next if value.nil?
+        name=_symbols2[i].not_nil!
         Log.trace { "Extended string #{name.i}=#{value.i})" }
+        idx = @capabilities.strings.indices[name]?
+        if !idx
+          idx = @capabilities.strings.list.size
+          @capabilities.strings.list.push name
+          @capabilities.strings.indices[name] = idx
+        end
+        @strings[idx.to_i16] = value
         i += 1
       end
+
+      p @booleans
+      p @numbers
+      p @strings
 
       # Don't do this; allow for erroneous null bytes at the end.
       #raise Exception.new("Not at end of file? Currently at #{io.pos}, should be at #{io.size}?") unless io.pos == io.size
@@ -397,9 +420,9 @@ class Terminfo
         raise Exception.new "Invalid header section: strings" if @strings_count < 0
         raise Exception.new "Invalid header section size: strings" if @strings_table_byte_size < 0
 
-        raise Exception.new "Too many booleans" if @booleans_count > Booleans.size
-        raise Exception.new "Too many numbers" if @numbers_count > Numbers.size
-        raise Exception.new "Too many strings" if @strings_count > Strings.size
+        #raise Exception.new "Too many booleans" if @booleans_count > @booleans.size
+        #raise Exception.new "Too many numbers" if @numbers_count > @numbers.size
+        #raise Exception.new "Too many strings" if @strings_count > @strings.size
       end
 
       # Converts Terminfo header object to Hash
@@ -445,10 +468,10 @@ class Terminfo
         @total_size            = @header_size + @booleans_count + @numbers_count*(@magic_number==282 ? 2 : 4) + @strings_count*2 + (@symbols_table_items_count*2) + @strings_table_byte_size
         Log.debug { "Extended header: #{to_h.to_json}" }
 
-        raise Exception.new "Invalid header section: booleans" if @booleans_count < 0
-        raise Exception.new "Invalid header section: numbers" if @numbers_count < 0
-        raise Exception.new "Invalid header section: strings" if @strings_count < 0
-        raise Exception.new "Invalid header section size: strings" if @strings_table_items_count < 0
+        #raise Exception.new "Invalid header section: booleans" if @booleans_count < 0
+        #raise Exception.new "Invalid header section: numbers" if @numbers_count < 0
+        #raise Exception.new "Invalid header section: strings" if @strings_count < 0
+        #raise Exception.new "Invalid header section size: strings" if @strings_table_items_count < 0
       end
 
       # Converts extended Terminfo header object to Hash
